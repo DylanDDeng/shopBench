@@ -7,20 +7,26 @@ export default function Home() {
   const derivedMetrics = results.map(r => computeDerivedMetrics(r));
 
   const best = results[0];
-  const avgScore = results.length > 0
-    ? results.reduce((s, r) => s + r.finalScore, 0) / results.length
-    : 0;
-  const mostEfficient = results.length > 0
-    ? results.reduce((best, r, i) => {
-        const dm = derivedMetrics[i];
-        const eff = r.metrics.totalToolCalls > 0 ? r.finalScore / r.metrics.totalToolCalls : 0;
-        const bestEff = best.r.metrics.totalToolCalls > 0 ? best.r.finalScore / best.r.metrics.totalToolCalls : 0;
-        return eff > bestEff ? { r, i } : best;
-      }, { r: results[0], i: 0 })
-    : null;
-  const highestRevenue = results.length > 0
-    ? results.reduce((best, r, i) => derivedMetrics[i].totalRevenue > derivedMetrics[best].totalRevenue ? i : best, 0)
-    : 0;
+  const lowestErrorRateModel = derivedMetrics.length > 0
+    ? getModelDisplayName(
+        results[
+          derivedMetrics.reduce(
+            (bestIdx, dm, idx) => (dm.errorRate < derivedMetrics[bestIdx].errorRate ? idx : bestIdx),
+            0,
+          )
+        ].model,
+      )
+    : "–";
+  const bestGrossMarginModel = derivedMetrics.length > 0
+    ? getModelDisplayName(
+        results[
+          derivedMetrics.reduce(
+            (bestIdx, dm, idx) => (dm.grossMargin > derivedMetrics[bestIdx].grossMargin ? idx : bestIdx),
+            0,
+          )
+        ].model,
+      )
+    : "–";
 
   return (
     <div className="container">
@@ -52,14 +58,14 @@ export default function Home() {
               color={best && best.finalScore >= 0 ? "#10b981" : "#ef4444"}
             />
             <MetricCard
-              value={formatYen(avgScore)}
-              label="Average 30-Day Net Cash"
-              color={avgScore >= 0 ? "#10b981" : "#ef4444"}
+              value={lowestErrorRateModel}
+              label="Lowest Error Rate"
+              color="#06b6d4"
             />
             <MetricCard
-              value={mostEfficient ? getModelDisplayName(mostEfficient.r.model) : "–"}
-              label="Most Efficient"
-              color="#06b6d4"
+              value={bestGrossMarginModel}
+              label="Best Gross Margin Model"
+              color="#a78bfa"
             />
           </div>
 
