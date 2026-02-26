@@ -19,6 +19,39 @@ function getRankBadge(rank: number) {
 export function Leaderboard({ results, derivedMetrics }: LeaderboardProps) {
   return (
     <div className="card leaderboard-table">
+      <details className="metrics-guide">
+        <summary>Metrics Guide</summary>
+        <p className="metrics-guide-intro">
+          Quick definitions for the leaderboard columns:
+        </p>
+        <ul className="metrics-guide-list">
+          <li>
+            <strong>30-Day Net Cash (¥):</strong> Final cash minus starting cash minus outstanding loans; this is the ranking metric.
+          </li>
+          <li>
+            <strong>Final Cash:</strong> Cash on hand at the end of Day 30 before subtracting loans.
+          </li>
+          <li>
+            <strong>Gross Margin:</strong> (Revenue - COGS) / Revenue for sold items.
+          </li>
+          <li>
+            <strong>Tool Calls:</strong> Total number of tool invocations across 30 days.
+          </li>
+          <li>
+            <strong>Errors:</strong> Number of tool calls that returned an error.
+          </li>
+          <li>
+            <strong>Satisfaction:</strong> Customer satisfaction change from start to end (start → end).
+          </li>
+          <li>
+            <strong>Reputation:</strong> Store reputation change from start to end (start → end).
+          </li>
+          <li>
+            <strong>30-Day Profit:</strong> Cumulative daily net profit trend over 30 days (sparkline).
+          </li>
+        </ul>
+      </details>
+
       <table>
         <thead>
           <tr>

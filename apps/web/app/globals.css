@@ -965,6 +965,46 @@ thead tr:hover {
   overflow-x: auto;
 }
 
+.metrics-guide {
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+}
+
+.metrics-guide summary {
+  padding: 0.7rem 0.85rem;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.metrics-guide[open] summary {
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.metrics-guide-intro {
+  margin: 0.65rem 0.85rem 0.5rem;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.metrics-guide-list {
+  margin: 0 0.85rem 0.8rem;
+  padding-left: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.metrics-guide-list li {
+  margin-bottom: 0.35rem;
+}
+
+.metrics-guide-list li:last-child {
+  margin-bottom: 0;
+}
+
 .leaderboard-table table {
   min-width: 900px;
 }
