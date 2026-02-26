@@ -47,6 +47,7 @@ export function Leaderboard({ results, derivedMetrics }: LeaderboardProps) {
               cum += p;
               return Math.round(cum);
             });
+            const sparklineDelay = Math.min(i * 70, 560);
 
             return (
               <tr key={r.id}>
@@ -76,6 +77,7 @@ export function Leaderboard({ results, derivedMetrics }: LeaderboardProps) {
                     data={profitCurve}
                     color={r.finalScore >= 0 ? "#10b981" : "#ef4444"}
                     showZero
+                    animationDelay={sparklineDelay}
                   />
                 </td>
                 <td>
