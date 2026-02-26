@@ -1,0 +1,25 @@
+{
+  "name": "@shopbench/runner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/cli.js",
+  "bin": {
+    "shopbench": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node --enable-source-maps dist/cli.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@shopbench/engine": "workspace:*",
+    "@shopbench/tools": "workspace:*",
+    "@shopbench/scoring": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0",
+    "@types/node": "^22.0.0"
+  }
+}

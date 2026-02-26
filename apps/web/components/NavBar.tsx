@@ -1,0 +1,16 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+
+export function NavBar() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="nav">
+      <Link href="/" className="nav-brand">ShopBench</Link>
+      <Link href="/" className={pathname === "/" ? "active" : undefined}>Leaderboard</Link>
+      <Link href="/compare" className={pathname === "/compare" ? "active" : undefined}>Compare</Link>
+    </nav>
+  );
+}

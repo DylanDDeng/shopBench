@@ -1,0 +1,95 @@
+"use client";
+
+import { LineChart, Line, ResponsiveContainer, ReferenceLine, XAxis, YAxis, Tooltip } from "recharts";
+import type { DayData } from "@/lib/types";
+import { formatYen } from "@/lib/types";
+import { CHART_THEME } from "@/lib/chartConfig";
+
+interface DayContextPanelProps {
+  days: DayData[];
+  currentDay: number;
+}
+
+export function DayContextPanel({ days, currentDay }: DayContextPanelProps) {
+  const day = days[currentDay];
+  if (!day) return null;
+
+  const ss = day.stateSnapshot;
+  const cashData = days.slice(0, currentDay + 1).map(d => ({
+    day: d.day,
+    cash: d.stateSnapshot?.cash ?? 0,
+  }));
+
+  const invValue = ss?.inventory?.reduce((s, it) => s + it.quantity * it.costPerUnit, 0) ?? 0;
+  const invCount = ss?.inventory?.reduce((s, it) => s + it.quantity, 0) ?? 0;
+
+  return (
+    <div className="replay-sidebar">
+      <div className="context-panel" style={{ marginBottom: "1rem" }}>
+        <h3 style={{ margin: "0 0 0.75rem" }}>Day {day.day} Snapshot</h3>
+        <div className="context-stat">
+          <span className="context-stat-label">Cash</span>
+          <span className="context-stat-value" style={{ color: "var(--accent-amber)" }}>
+            {formatYen(ss?.cash ?? 0)}
+          </span>
+        </div>
+        <div className="context-stat">
+          <span className="context-stat-label">Satisfaction</span>
+          <span className="context-stat-value">{ss?.customerSatisfaction ?? "–"}</span>
+        </div>
+        <div className="context-stat">
+          <span className="context-stat-label">Reputation</span>
+          <span className="context-stat-value">{ss?.reputation ?? "–"}</span>
+        </div>
+        <div className="context-stat">
+          <span className="context-stat-label">Employees</span>
+          <span className="context-stat-value">{ss?.employees?.length ?? 0}</span>
+        </div>
+        <div className="context-stat">
+          <span className="context-stat-label">Inventory</span>
+          <span className="context-stat-value">{invCount} units ({formatYen(invValue)})</span>
+        </div>
+        <div className="context-stat">
+          <span className="context-stat-label">Weather</span>
+          <span className="context-stat-value">{ss?.weather ?? "–"}</span>
+        </div>
+        <div className="context-stat">
+          <span className="context-stat-label">Revenue</span>
+          <span className="context-stat-value" style={{ color: "var(--accent-blue)" }}>
+            {formatYen(day.settlement.revenue)}
+          </span>
+        </div>
+        <div className="context-stat">
+          <span className="context-stat-label">Day Profit</span>
+          <span className="context-stat-value" style={{ color: day.settlement.netProfit >= 0 ? "var(--accent-green)" : "var(--accent-red)" }}>
+            {formatYen(day.settlement.netProfit)}
+          </span>
+        </div>
+        <div className="context-stat">
+          <span className="context-stat-label">Customers</span>
+          <span className="context-stat-value">{day.settlement.customerCount}</span>
+        </div>
+      </div>
+
+      <div className="context-panel">
+        <h3 style={{ margin: "0 0 0.5rem" }}>Cash Trend</h3>
+        <ResponsiveContainer width="100%" height={160}>
+          <LineChart data={cashData}>
+            <XAxis dataKey="day" {...CHART_THEME.axis} />
+            <YAxis {...CHART_THEME.axis} />
+            <Tooltip {...CHART_THEME.tooltip} />
+            <ReferenceLine y={20000} stroke="#444" strokeDasharray="3 3" label={{ value: "Start", fill: "#666", fontSize: 10 }} />
+            <Line
+              type="monotone"
+              dataKey="cash"
+              stroke="#f59e0b"
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}

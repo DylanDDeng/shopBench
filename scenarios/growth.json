@@ -1,0 +1,71 @@
+{
+  "name": "growth",
+  "description": "Growth opportunity scenario. Higher starting cash, booming neighborhood, more products. Tests scaling and strategic investment.",
+  "totalDays": 30,
+  "startingCash": 20000,
+  "monthlyRent": 4000,
+  "maxToolCallsPerDay": 12,
+  "products": [
+    { "id": "water", "name": "Bottled Water", "category": "drink", "basePrice": 2, "baseCost": 0.8, "shelfLifeDays": 180, "dailyDemandBase": 40, "weatherSensitivity": { "sunny": 1.5 }, "weekendMultiplier": 1.2 },
+    { "id": "cola", "name": "Cola", "category": "drink", "basePrice": 3.5, "baseCost": 1.5, "shelfLifeDays": 90, "dailyDemandBase": 25, "weatherSensitivity": { "sunny": 1.3 }, "weekendMultiplier": 1.3 },
+    { "id": "juice", "name": "Fresh Juice", "category": "drink", "basePrice": 8, "baseCost": 4, "shelfLifeDays": 5, "dailyDemandBase": 15, "weatherSensitivity": { "sunny": 1.6 }, "weekendMultiplier": 1.4 },
+    { "id": "instant_noodles", "name": "Instant Noodles", "category": "food", "basePrice": 4, "baseCost": 2, "shelfLifeDays": 120, "dailyDemandBase": 15, "weatherSensitivity": { "rainy": 1.4 }, "weekendMultiplier": 1.1 },
+    { "id": "bread", "name": "Fresh Bread", "category": "food", "basePrice": 5, "baseCost": 2.5, "shelfLifeDays": 3, "dailyDemandBase": 25, "weatherSensitivity": {}, "weekendMultiplier": 1.4 },
+    { "id": "bento", "name": "Lunch Bento", "category": "food", "basePrice": 15, "baseCost": 8, "shelfLifeDays": 1, "dailyDemandBase": 20, "weatherSensitivity": {}, "weekendMultiplier": 0.6 },
+    { "id": "chips", "name": "Potato Chips", "category": "snack", "basePrice": 6, "baseCost": 3, "shelfLifeDays": 60, "dailyDemandBase": 15, "weatherSensitivity": {}, "weekendMultiplier": 1.5 },
+    { "id": "ice_cream", "name": "Ice Cream", "category": "snack", "basePrice": 5, "baseCost": 2, "shelfLifeDays": 14, "dailyDemandBase": 18, "weatherSensitivity": { "sunny": 2.0, "rainy": 0.3 }, "weekendMultiplier": 1.6 },
+    { "id": "cigarettes", "name": "Cigarettes", "category": "tobacco_alcohol", "basePrice": 15, "baseCost": 11, "shelfLifeDays": 365, "dailyDemandBase": 12, "weatherSensitivity": {}, "weekendMultiplier": 1.0 },
+    { "id": "beer", "name": "Beer (6-pack)", "category": "tobacco_alcohol", "basePrice": 18, "baseCost": 10, "shelfLifeDays": 180, "dailyDemandBase": 12, "weatherSensitivity": { "sunny": 1.5 }, "weekendMultiplier": 2.0 },
+    { "id": "tissue", "name": "Tissue Paper", "category": "daily_necessity", "basePrice": 8, "baseCost": 4, "shelfLifeDays": 365, "dailyDemandBase": 8, "weatherSensitivity": {}, "weekendMultiplier": 1.0 },
+    { "id": "rice", "name": "Rice (5kg)", "category": "food", "basePrice": 25, "baseCost": 18, "shelfLifeDays": 180, "dailyDemandBase": 6, "weatherSensitivity": {}, "weekendMultiplier": 1.2 }
+  ],
+  "suppliers": [
+    { "id": "sup_local", "name": "Local Wholesale", "tier": "budget", "products": ["water", "cola", "instant_noodles", "chips", "tissue", "rice"], "priceMultiplier": 1.0, "deliveryDays": 1, "reliability": 0.9, "minOrderAmount": 50 },
+    { "id": "sup_fresh", "name": "Fresh Daily Co.", "tier": "standard", "products": ["bread", "juice", "bento", "ice_cream"], "priceMultiplier": 1.05, "deliveryDays": 1, "reliability": 0.95, "minOrderAmount": 100 },
+    { "id": "sup_distributor", "name": "Regional Distributor", "tier": "standard", "products": ["water", "cola", "instant_noodles", "chips", "beer", "cigarettes", "tissue", "rice"], "priceMultiplier": 1.1, "deliveryDays": 2, "reliability": 0.95, "minOrderAmount": 200 },
+    { "id": "sup_premium", "name": "Premium Supply", "tier": "premium", "products": ["juice", "bento", "ice_cream", "beer", "cigarettes"], "priceMultiplier": 1.2, "deliveryDays": 1, "reliability": 0.99, "minOrderAmount": 100 }
+  ],
+  "competitors": [
+    { "id": "comp_a", "name": "Uncle Wang's", "priceLevel": "low", "promotionActive": false, "promotionDiscount": 0, "reputation": 50 },
+    { "id": "comp_b", "name": "FamilyMart", "priceLevel": "high", "promotionActive": true, "promotionDiscount": 10, "reputation": 75 },
+    { "id": "comp_c", "name": "New Corner Store", "priceLevel": "medium", "promotionActive": false, "promotionDiscount": 0, "reputation": 40 }
+  ],
+  "customerSegments": [
+    { "id": "seg_students", "name": "Students", "proportion": 0.3, "priceElasticity": 0.7, "preferredCategories": ["snack", "drink"], "peakHours": [12, 17, 18] },
+    { "id": "seg_workers", "name": "Office Workers", "proportion": 0.35, "priceElasticity": 0.3, "preferredCategories": ["food", "drink", "tobacco_alcohol"], "peakHours": [8, 12, 18] },
+    { "id": "seg_elderly", "name": "Elderly", "proportion": 0.15, "priceElasticity": 0.6, "preferredCategories": ["food", "daily_necessity"], "peakHours": [7, 8, 16] },
+    { "id": "seg_families", "name": "Families", "proportion": 0.2, "priceElasticity": 0.4, "preferredCategories": ["food", "daily_necessity", "snack"], "peakHours": [10, 17, 18, 19] }
+  ],
+  "initialInventory": [
+    { "productId": "water", "quantity": 120 },
+    { "productId": "cola", "quantity": 80 },
+    { "productId": "juice", "quantity": 30 },
+    { "productId": "instant_noodles", "quantity": 60 },
+    { "productId": "bread", "quantity": 40 },
+    { "productId": "bento", "quantity": 25 },
+    { "productId": "chips", "quantity": 50 },
+    { "productId": "ice_cream", "quantity": 30 },
+    { "productId": "cigarettes", "quantity": 40 },
+    { "productId": "beer", "quantity": 36 },
+    { "productId": "tissue", "quantity": 25 },
+    { "productId": "rice", "quantity": 12 }
+  ],
+  "initialEmployees": [
+    { "name": "小李", "role": "cashier", "dailyWage": 130, "morale": 80, "skill": 55, "shift": "full_day" },
+    { "name": "老张", "role": "stocker", "dailyWage": 110, "morale": 70, "skill": 65, "shift": "morning" },
+    { "name": "小美", "role": "cashier", "dailyWage": 120, "morale": 75, "skill": 45, "shift": "afternoon" }
+  ],
+  "eventPool": [],
+  "holidays": [
+    { "day": 5, "name": "Local Food Festival" },
+    { "day": 14, "name": "Valentine's Day" },
+    { "day": 21, "name": "Spring Market" }
+  ],
+  "weatherPattern": [
+    "sunny", "sunny", "sunny", "cloudy", "sunny", "sunny", "sunny",
+    "cloudy", "sunny", "sunny", "cloudy", "sunny", "sunny", "sunny",
+    "sunny", "cloudy", "sunny", "sunny", "rainy", "sunny", "sunny",
+    "sunny", "sunny", "cloudy", "sunny", "sunny", "sunny", "sunny",
+    "cloudy", "sunny"
+  ]
+}

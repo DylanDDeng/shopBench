@@ -1,0 +1,47 @@
+{
+  "name": "crisis",
+  "description": "Economic downturn scenario. Lower starting cash, higher costs, frequent negative events. Tests resilience and cost management.",
+  "totalDays": 30,
+  "startingCash": 5000,
+  "monthlyRent": 3500,
+  "maxToolCallsPerDay": 10,
+  "products": [
+    { "id": "water", "name": "Bottled Water", "category": "drink", "basePrice": 2.5, "baseCost": 1.2, "shelfLifeDays": 180, "dailyDemandBase": 20, "weatherSensitivity": { "sunny": 1.3 }, "weekendMultiplier": 1.1 },
+    { "id": "instant_noodles", "name": "Instant Noodles", "category": "food", "basePrice": 4.5, "baseCost": 2.5, "shelfLifeDays": 120, "dailyDemandBase": 18, "weatherSensitivity": { "rainy": 1.3 }, "weekendMultiplier": 1.0 },
+    { "id": "bread", "name": "Fresh Bread", "category": "food", "basePrice": 5, "baseCost": 3, "shelfLifeDays": 2, "dailyDemandBase": 12, "weatherSensitivity": {}, "weekendMultiplier": 1.2 },
+    { "id": "rice", "name": "Rice (5kg)", "category": "food", "basePrice": 28, "baseCost": 22, "shelfLifeDays": 180, "dailyDemandBase": 5, "weatherSensitivity": {}, "weekendMultiplier": 1.1 },
+    { "id": "tissue", "name": "Tissue Paper", "category": "daily_necessity", "basePrice": 8, "baseCost": 5, "shelfLifeDays": 365, "dailyDemandBase": 5, "weatherSensitivity": {}, "weekendMultiplier": 1.0 },
+    { "id": "cigarettes", "name": "Cigarettes", "category": "tobacco_alcohol", "basePrice": 16, "baseCost": 12, "shelfLifeDays": 365, "dailyDemandBase": 8, "weatherSensitivity": {}, "weekendMultiplier": 1.0 }
+  ],
+  "suppliers": [
+    { "id": "sup_local", "name": "Local Market (Struggling)", "tier": "budget", "products": ["water", "instant_noodles", "bread", "rice", "tissue"], "priceMultiplier": 1.15, "deliveryDays": 2, "reliability": 0.75, "minOrderAmount": 80 },
+    { "id": "sup_reliable", "name": "Reliable Supply Co.", "tier": "standard", "products": ["water", "instant_noodles", "bread", "rice", "tissue", "cigarettes"], "priceMultiplier": 1.3, "deliveryDays": 1, "reliability": 0.95, "minOrderAmount": 150 }
+  ],
+  "competitors": [
+    { "id": "comp_a", "name": "Discount Dan's", "priceLevel": "low", "promotionActive": true, "promotionDiscount": 15, "reputation": 60 }
+  ],
+  "customerSegments": [
+    { "id": "seg_budget", "name": "Budget Shoppers", "proportion": 0.6, "priceElasticity": 0.8, "preferredCategories": ["food", "daily_necessity"], "peakHours": [8, 12, 18] },
+    { "id": "seg_regular", "name": "Regular Customers", "proportion": 0.4, "priceElasticity": 0.5, "preferredCategories": ["food", "drink", "tobacco_alcohol"], "peakHours": [12, 17] }
+  ],
+  "initialInventory": [
+    { "productId": "water", "quantity": 50 },
+    { "productId": "instant_noodles", "quantity": 40 },
+    { "productId": "bread", "quantity": 15 },
+    { "productId": "rice", "quantity": 5 },
+    { "productId": "tissue", "quantity": 10 },
+    { "productId": "cigarettes", "quantity": 20 }
+  ],
+  "initialEmployees": [
+    { "name": "小王", "role": "cashier", "dailyWage": 100, "morale": 55, "skill": 40, "shift": "full_day" }
+  ],
+  "eventPool": [],
+  "holidays": [],
+  "weatherPattern": [
+    "rainy", "rainy", "cloudy", "stormy", "rainy", "cloudy", "rainy",
+    "cloudy", "rainy", "stormy", "cloudy", "rainy", "rainy", "cloudy",
+    "sunny", "cloudy", "rainy", "rainy", "stormy", "cloudy", "rainy",
+    "cloudy", "sunny", "rainy", "cloudy", "rainy", "cloudy", "sunny",
+    "cloudy", "rainy"
+  ]
+}

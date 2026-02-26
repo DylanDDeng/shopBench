@@ -1,0 +1,14 @@
+{
+  "name": "shopbench",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "dev:web": "pnpm --filter @shopbench/web dev",
+    "run:bench": "pnpm --filter @shopbench/runner start"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  }
+}
