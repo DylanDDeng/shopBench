@@ -48,12 +48,12 @@ export default function Home() {
             />
             <MetricCard
               value={best ? formatYen(best.finalScore) : "–"}
-              label="Best Score"
+              label="Best 30-Day Net Cash"
               color={best && best.finalScore >= 0 ? "#10b981" : "#ef4444"}
             />
             <MetricCard
               value={formatYen(avgScore)}
-              label="Average Score"
+              label="Average 30-Day Net Cash"
               color={avgScore >= 0 ? "#10b981" : "#ef4444"}
             />
             <MetricCard
