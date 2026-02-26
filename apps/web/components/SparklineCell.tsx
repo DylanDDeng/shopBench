@@ -25,7 +25,7 @@ export function SparklineCell({
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData}>
           {(showZero || hasNegative) && (
-            <ReferenceLine y={0} stroke="#444" strokeDasharray="2 2" />
+            <ReferenceLine y={0} stroke="#cbd5e1" strokeDasharray="2 2" />
           )}
           <Line
             type="monotone"

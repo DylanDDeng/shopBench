@@ -1,6 +1,7 @@
 "use client";
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { CHART_THEME } from "@/lib/chartConfig";
 
 const COLORS = ["#60a5fa", "#10b981", "#f59e0b", "#ef4444", "#a78bfa", "#ec4899"];
 
@@ -30,10 +31,10 @@ export function CompareChart({ results }: { results: CompareResult[] }) {
       <h3 style={{ marginTop: 0 }}>Cumulative Profit Comparison</h3>
       <ResponsiveContainer width="100%" height={400}>
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-          <XAxis dataKey="day" stroke="#888" />
-          <YAxis stroke="#888" />
-          <Tooltip contentStyle={{ background: "#1a1a1a", border: "1px solid #333" }} />
+          <CartesianGrid {...CHART_THEME.grid} />
+          <XAxis dataKey="day" {...CHART_THEME.axis} />
+          <YAxis {...CHART_THEME.axis} />
+          <Tooltip {...CHART_THEME.tooltip} />
           <Legend />
           {results.map((r, i) => (
             <Line

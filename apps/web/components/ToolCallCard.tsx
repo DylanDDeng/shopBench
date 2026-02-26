@@ -26,7 +26,7 @@ export function ToolCallCard({ call, index }: ToolCallCardProps) {
     >
       <div className="tool-call-header">
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <span style={{ color: "#666", fontSize: "0.75rem", fontVariantNumeric: "tabular-nums" }}>
+          <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontVariantNumeric: "tabular-nums" }}>
             #{index + 1}
           </span>
           <span className="tool-call-name">{label}</span>

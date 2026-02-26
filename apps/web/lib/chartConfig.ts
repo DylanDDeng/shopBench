@@ -1,20 +1,25 @@
 /* ─── Chart Theme Configuration ─── */
 
 export const CHART_THEME = {
-  grid: { stroke: "#2a2a2a", strokeDasharray: "3 3" },
-  axis: { stroke: "#666", fontSize: 12 },
+  grid: { stroke: "#e2e8f0", strokeDasharray: "3 3" },
+  axis: {
+    stroke: "#94a3b8",
+    tick: { fill: "#64748b", fontSize: 12 },
+    fontSize: 12,
+  },
   tooltip: {
     contentStyle: {
-      background: "#1a1a1a",
-      border: "1px solid #333",
+      background: "#ffffff",
+      border: "1px solid #cbd5e1",
       borderRadius: "8px",
       fontSize: "13px",
-      color: "#ededed",
+      color: "#0f172a",
+      boxShadow: "0 6px 20px rgba(15, 23, 42, 0.08)",
     },
-    cursor: { stroke: "#444" },
+    cursor: { stroke: "#cbd5e1" },
   },
   animation: { duration: 800, easing: "ease-out" as const },
-  referenceLine: { stroke: "#444", strokeDasharray: "4 4" },
+  referenceLine: { stroke: "#94a3b8", strokeDasharray: "4 4" },
 };
 
 /* ─── Model Colors ─── */

@@ -31,9 +31,9 @@ export function DayReplay({ days }: { days: DayData[] }) {
             onClick={() => setSelectedDay(i)}
             style={{
               padding: "0.5rem 0.75rem",
-              background: i === selectedDay ? "#60a5fa" : "#1a1a1a",
-              color: i === selectedDay ? "#000" : "#888",
-              border: "1px solid #333",
+              background: i === selectedDay ? "var(--accent-blue)" : "var(--bg-card)",
+              color: i === selectedDay ? "#fff" : "var(--text-secondary)",
+              border: "1px solid var(--border-primary)",
               borderRadius: "4px",
               cursor: "pointer",
               fontSize: "0.8rem",

@@ -28,13 +28,13 @@ export function RadarCompare({
   return (
     <ResponsiveContainer width="100%" height={height}>
       <RadarChart data={data} cx="50%" cy="50%" outerRadius="75%">
-        <PolarGrid stroke="#2a2a2a" />
+        <PolarGrid stroke="#e2e8f0" />
         <PolarAngleAxis
           dataKey={axisKey}
-          tick={{ fill: "#a0a0a0", fontSize: 12 }}
+          tick={{ fill: "#475569", fontSize: 12 }}
         />
         <PolarRadiusAxis
-          tick={{ fill: "#666", fontSize: 10 }}
+          tick={{ fill: "#64748b", fontSize: 10 }}
           domain={[0, 100]}
           axisLine={false}
         />

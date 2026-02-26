@@ -78,7 +78,7 @@ export function DayContextPanel({ days, currentDay }: DayContextPanelProps) {
             <XAxis dataKey="day" {...CHART_THEME.axis} />
             <YAxis {...CHART_THEME.axis} />
             <Tooltip {...CHART_THEME.tooltip} />
-            <ReferenceLine y={20000} stroke="#444" strokeDasharray="3 3" label={{ value: "Start", fill: "#666", fontSize: 10 }} />
+            <ReferenceLine y={20000} stroke="#94a3b8" strokeDasharray="3 3" label={{ value: "Start", fill: "#64748b", fontSize: 10 }} />
             <Line
               type="monotone"
               dataKey="cash"

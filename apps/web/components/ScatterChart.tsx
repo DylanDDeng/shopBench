@@ -45,7 +45,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 function CustomLabel({ viewBox, value }: { viewBox?: { x: number; y: number }; value: string }) {
   if (!viewBox) return null;
   return (
-    <text x={viewBox.x} y={viewBox.y - 10} fill="#a0a0a0" fontSize={11} textAnchor="middle">
+    <text x={viewBox.x} y={viewBox.y - 10} fill="#64748b" fontSize={11} textAnchor="middle">
       {value}
     </text>
   );
@@ -67,7 +67,7 @@ export function PriceVsProfitScatter({ data, height = 400 }: ScatterChartProps) 
           name="Price Changes"
           {...CHART_THEME.axis}
         >
-          <Label value="Price Changes (set_price calls)" position="bottom" offset={0} fill="#666" fontSize={12} />
+          <Label value="Price Changes (set_price calls)" position="bottom" offset={0} fill="#64748b" fontSize={12} />
         </XAxis>
         <YAxis
           type="number"
@@ -76,7 +76,7 @@ export function PriceVsProfitScatter({ data, height = 400 }: ScatterChartProps) 
           tickFormatter={v => `¥${(v / 1000).toFixed(0)}k`}
           {...CHART_THEME.axis}
         >
-          <Label value="Net Profit (¥)" position="left" angle={-90} offset={10} fill="#666" fontSize={12} />
+          <Label value="Net Profit (¥)" position="left" angle={-90} offset={10} fill="#64748b" fontSize={12} />
         </YAxis>
         <ZAxis
           type="number"
