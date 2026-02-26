@@ -78,7 +78,7 @@ export class OpenRouterClient {
     this.reasoning = needsReasoning(config.model);
   }
 
-  async chat(messages: Message[]): Promise<ChatResponse> {
+  async chat(messages: Message[], maxRetries = 3): Promise<ChatResponse> {
     const url = `${this.config.baseUrl ?? "https://openrouter.ai/api/v1"}/chat/completions`;
 
     const body: Record<string, unknown> = {
@@ -93,27 +93,60 @@ export class OpenRouterClient {
       body.reasoning = { enabled: true };
     }
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${this.config.apiKey}`,
-        "HTTP-Referer": "https://shopbench.dev",
-        "X-Title": "ShopBench",
-      },
-      body: JSON.stringify(body),
-    });
+    let lastError: Error | null = null;
 
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`OpenRouter API error ${res.status}: ${text}`);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${this.config.apiKey}`,
+            "HTTP-Referer": "https://shopbench.dev",
+            "X-Title": "ShopBench",
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          const status = res.status;
+          // 4xx client errors (except 429 rate limit) are not retryable
+          if (status >= 400 && status < 500 && status !== 429) {
+            throw new Error(`OpenRouter API error ${status}: ${text}`);
+          }
+          throw new Error(`OpenRouter API error ${status} (retryable): ${text}`);
+        }
+
+        const data = (await res.json()) as ChatResponse;
+
+        // API returned 200 but no choices (e.g. upstream model error)
+        if (!data.choices) {
+          const errDetail = (data as unknown as Record<string, unknown>).error ?? JSON.stringify(data);
+          throw new Error(`API returned no choices: ${typeof errDetail === 'string' ? errDetail : JSON.stringify(errDetail)}`);
+        }
+
+        if (data.usage) {
+          this.totalTokens += data.usage.prompt_tokens + data.usage.completion_tokens;
+        }
+        return data;
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+
+        // Don't retry non-retryable errors
+        if (lastError.message.includes('API error 4') && !lastError.message.includes('(retryable)')) {
+          throw lastError;
+        }
+
+        if (attempt < maxRetries) {
+          const delay = Math.min(1000 * 2 ** (attempt - 1), 10000); // 1s, 2s, 4s... max 10s
+          console.warn(`  [Retry ${attempt}/${maxRetries}] ${lastError.message.slice(0, 120)} — retrying in ${delay / 1000}s...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
 
-    const data = (await res.json()) as ChatResponse;
-    if (data.usage) {
-      this.totalTokens += data.usage.prompt_tokens + data.usage.completion_tokens;
-    }
-    return data;
+    throw lastError ?? new Error("All retries exhausted");
   }
 
   getTotalTokens(): number {

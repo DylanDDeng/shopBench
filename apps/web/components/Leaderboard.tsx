@@ -24,7 +24,7 @@ export function Leaderboard({ results, derivedMetrics }: LeaderboardProps) {
           <tr>
             <th style={{ width: 60 }}>Rank</th>
             <th>Model</th>
-            <th className="text-right">Score</th>
+            <th className="text-right">30-Day Net Cash (¥)</th>
             <th className="text-right">Final Cash</th>
             <th className="text-right">Gross Margin</th>
             <th className="text-right">Tool Calls</th>
