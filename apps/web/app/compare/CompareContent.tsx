@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { CompareTabPanel } from "@/components/CompareTabPanel";
 import { RadarCompare } from "@/components/RadarCompare";
 import { TrendLineChart } from "@/components/TrendLineChart";
@@ -48,6 +49,41 @@ export function CompareContent({
   endGameData,
 }: CompareContentProps) {
   const series = models.map(m => ({ key: m.name, name: m.name, color: m.color }));
+  const defaultModelA = models[0]?.name ?? "";
+  const defaultModelB = models[1]?.name ?? models[0]?.name ?? "";
+
+  const [radarMode, setRadarMode] = useState<"all" | "pair">("all");
+  const [modelA, setModelA] = useState(defaultModelA);
+  const [modelB, setModelB] = useState(defaultModelB);
+
+  const handleModelAChange = (value: string) => {
+    setModelA(value);
+    if (value === modelB) {
+      const alt = models.find(m => m.name !== value)?.name ?? value;
+      setModelB(alt);
+    }
+  };
+
+  const handleModelBChange = (value: string) => {
+    setModelB(value);
+    if (value === modelA) {
+      const alt = models.find(m => m.name !== value)?.name ?? value;
+      setModelA(alt);
+    }
+  };
+
+  const selectedModels = models.filter(m => m.name === modelA || m.name === modelB);
+  const selectedSeries = selectedModels.map(m => ({ key: m.name, name: m.name, color: m.color }));
+  const selectedRadarData = radarData.map(row => ({
+    metric: row.metric,
+    [modelA]: row[modelA as keyof typeof row],
+    [modelB]: row[modelB as keyof typeof row],
+  }));
+  const overviewSeries = radarMode === "pair" ? selectedSeries : series;
+  const overviewRadarData = radarMode === "pair" ? selectedRadarData : radarData;
+  const overviewSummaryRows = radarMode === "pair"
+    ? summaryTable.filter(row => row.name === modelA || row.name === modelB)
+    : summaryTable;
 
   const tabs = [
     {
@@ -58,7 +94,54 @@ export function CompareContent({
           <div className="grid-2">
             <div className="card">
               <h3>Multi-Dimensional Comparison</h3>
-              <RadarCompare data={radarData} axisKey="metric" series={series} />
+              <div className="compare-radar-controls">
+                <div className="compare-radar-mode">
+                  <button
+                    type="button"
+                    className={`compare-mode-btn ${radarMode === "all" ? "active" : ""}`}
+                    onClick={() => setRadarMode("all")}
+                  >
+                    All Models
+                  </button>
+                  <button
+                    type="button"
+                    className={`compare-mode-btn ${radarMode === "pair" ? "active" : ""}`}
+                    onClick={() => setRadarMode("pair")}
+                    disabled={models.length < 2}
+                  >
+                    Pick 2 Models
+                  </button>
+                </div>
+                {radarMode === "pair" && models.length > 1 && (
+                  <div className="compare-model-picks">
+                    <label className="compare-pick-label">
+                      Model A
+                      <select
+                        className="compare-pick-select"
+                        value={modelA}
+                        onChange={e => handleModelAChange(e.target.value)}
+                      >
+                        {models.map(m => (
+                          <option key={m.name} value={m.name}>{m.name}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="compare-pick-label">
+                      Model B
+                      <select
+                        className="compare-pick-select"
+                        value={modelB}
+                        onChange={e => handleModelBChange(e.target.value)}
+                      >
+                        {models.map(m => (
+                          <option key={m.name} value={m.name}>{m.name}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                )}
+              </div>
+              <RadarCompare data={overviewRadarData} axisKey="metric" series={overviewSeries} />
             </div>
             <div className="card">
               <h3>Score Summary</h3>
@@ -74,7 +157,7 @@ export function CompareContent({
                   </tr>
                 </thead>
                 <tbody>
-                  {summaryTable.map(row => (
+                  {overviewSummaryRows.map(row => (
                     <tr key={row.name}>
                       <td><strong>{row.name}</strong></td>
                       <td className={`text-right ${row.score >= 0 ? "profit-positive" : "profit-negative"}`}>
