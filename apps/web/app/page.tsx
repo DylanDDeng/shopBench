@@ -57,7 +57,7 @@ export default function Home() {
               </div>
               <p className="highlight-kicker">Overall Winner</p>
               <div className="highlight-value">{best ? getModelDisplayName(best.model) : "–"}</div>
-              <p className="highlight-subtitle">Highest Net Cash &amp; Consistency</p>
+              <p className="highlight-subtitle highlight-subtitle-nowrap">Highest Net Cash &amp; Consistency</p>
             </article>
 
             <article className="highlight-card highlight-card-cash">

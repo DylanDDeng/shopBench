@@ -258,6 +258,12 @@ a:hover {
   line-height: 1.35;
 }
 
+.highlight-subtitle-nowrap {
+  font-size: 0.72rem;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
 .highlight-watermark {
   position: absolute;
   top: 10px;
@@ -1884,6 +1890,10 @@ thead tr:hover {
   .highlight-watermark {
     width: 60px;
     height: 60px;
+  }
+
+  .highlight-subtitle-nowrap {
+    white-space: normal;
   }
 
   .nav {
