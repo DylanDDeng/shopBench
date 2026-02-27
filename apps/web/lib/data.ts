@@ -8,7 +8,7 @@ export * from "./types";
 
 /* ─── Data Loading (server-only) ─── */
 
-const DATA_DIR = resolve(process.cwd(), "../../data");
+const DATA_DIR = resolve(process.cwd(), "data");
 
 export function getAllResults(): SimulationResult[] {
   try {
