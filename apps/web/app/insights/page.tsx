@@ -694,7 +694,7 @@ function buildModelDiagnostics({
       });
 
     const fallbackDay = [...dailyRows].sort((a, b) => a.netProfit - b.netProfit)[0];
-    const finalCriticalDays = criticalDays.length > 0
+    const finalCriticalDays: DiagnosticDay[] = criticalDays.length > 0
       ? criticalDays
       : [{
           day: fallbackDay.day,
