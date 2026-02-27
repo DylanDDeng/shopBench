@@ -296,13 +296,13 @@ a:hover {
 }
 
 .top-signal-overall {
-  border-color: #f5d089;
-  background: linear-gradient(180deg, #fffaf0 0%, #ffffff 92%);
+  border-color: #C15F3C;
+  background: linear-gradient(180deg, #fff4f0 0%, #ffffff 92%);
 }
 
 .top-signal-overall .top-signal-label,
 .top-signal-overall .top-signal-value {
-  color: #ca8a04;
+  color: #C15F3C;
 }
 
 .top-signal-overall .top-signal-mark,
@@ -311,13 +311,13 @@ a:hover {
 }
 
 .top-signal-claude {
-  border-color: #f5d089;
-  background: linear-gradient(180deg, #fffaf0 0%, #ffffff 92%);
+  border-color: #C15F3C;
+  background: linear-gradient(180deg, #fff4f0 0%, #ffffff 92%);
 }
 
 .top-signal-claude .top-signal-label,
 .top-signal-claude .top-signal-value {
-  color: #ca8a04;
+  color: #C15F3C;
 }
 
 .top-signal-cash {
