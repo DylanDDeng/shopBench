@@ -128,7 +128,7 @@ export function Leaderboard({ results, derivedMetrics }: LeaderboardProps) {
                 help="Cumulative trend of daily net profit across the 30-day run."
               />
             </th>
-            <th>Actions</th>
+            <th className="text-center">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -161,9 +161,17 @@ export function Leaderboard({ results, derivedMetrics }: LeaderboardProps) {
                     animationDelay={sparklineDelay}
                   />
                 </td>
-                <td className="leaderboard-actions">
-                  <a href={`/report/${r.id}`} className="action-link">Report</a>
-                  <a href={`/replay/${r.id}`} className="action-link">Replay</a>
+                <td className="leaderboard-actions text-center">
+                  <details className="action-menu">
+                    <summary className="action-menu-trigger">
+                      View
+                      <span className="action-menu-caret" aria-hidden>▾</span>
+                    </summary>
+                    <div className="action-menu-list">
+                      <a href={`/report/${r.id}`} className="action-menu-item">Report</a>
+                      <a href={`/replay/${r.id}`} className="action-menu-item">Replay</a>
+                    </div>
+                  </details>
                 </td>
               </tr>
             );
