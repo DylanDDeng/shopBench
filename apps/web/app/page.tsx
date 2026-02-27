@@ -26,6 +26,7 @@ export default function Home() {
         ].model,
       )
     : "–";
+  const lowestErrorIsClaude = lowestErrorRateModel.toLowerCase().includes("claude");
 
   return (
     <div className="container">
@@ -62,8 +63,10 @@ export default function Home() {
               <p className="top-signal-meta">Top cash outcome</p>
             </article>
 
-            <article className="top-signal top-signal-error" title={lowestErrorRateModel}>
-              <div className="top-signal-mark top-signal-mark-symbol" aria-hidden>✓</div>
+            <article className={`top-signal ${lowestErrorIsClaude ? "top-signal-claude" : "top-signal-error"}`} title={lowestErrorRateModel}>
+              <div className={`top-signal-mark ${lowestErrorIsClaude ? "" : "top-signal-mark-symbol"}`} aria-hidden>
+                {lowestErrorIsClaude ? <img src="/leaderboard/claude-color.svg" alt="" /> : "✓"}
+              </div>
               <p className="top-signal-label">Lowest Tool Call Error Rate</p>
               <p className="top-signal-value">{lowestErrorRateModel}</p>
               <p className="top-signal-meta">Most reliable execution</p>
