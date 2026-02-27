@@ -12,6 +12,7 @@ import { InsightCard } from "@/components/InsightCard";
 import { CaseStudyCard } from "@/components/CaseStudyCard";
 import { InsightsContent } from "./InsightsContent";
 import { DeepDiveReports, type DeepDiveReport } from "./DeepDiveReports";
+import { ModelDiagnosticsPanel } from "./ModelDiagnosticsPanel";
 import type { DerivedMetrics, SimulationResult } from "@/lib/types";
 import type { Locale } from "@/lib/i18n";
 
@@ -44,6 +45,27 @@ interface StrategyGroupData {
   models: ModelAnalysis[];
   summary: string;
   avgNetProfit: number;
+}
+
+interface DiagnosticDay {
+  day: number;
+  title: string;
+  reason: string;
+  actions: string;
+  impact: string;
+  severity: "high" | "medium" | "low";
+}
+
+interface ModelDiagnostic {
+  model: string;
+  displayName: string;
+  rank: number;
+  netCash: number;
+  grossMargin: number;
+  whyMarginPositive: string;
+  didWell: string[];
+  didPoorly: string[];
+  criticalDays: DiagnosticDay[];
 }
 
 /* ─── Strategy classification ─── */
@@ -308,6 +330,12 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
     strategyMeta,
     strategySummaries,
   });
+  const modelDiagnostics = buildModelDiagnostics({
+    analyses,
+    results,
+    derivedMetrics,
+    locale,
+  });
 
   return (
     <div className="container">
@@ -385,6 +413,8 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
         }))}
       />
 
+      <ModelDiagnosticsPanel diagnostics={modelDiagnostics} locale={locale} />
+
       <section className="insights-block">
         <div className="insights-block-head">
           <h2>{isZh ? "失败案例拆解" : "Failure Case Studies"}</h2>
@@ -404,6 +434,291 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
       <DeepDiveReports reports={deepDiveReports} locale={locale} />
     </div>
   );
+}
+
+function buildModelDiagnostics({
+  analyses,
+  results,
+  derivedMetrics,
+  locale,
+}: {
+  analyses: ModelAnalysis[];
+  results: SimulationResult[];
+  derivedMetrics: DerivedMetrics[];
+  locale: Locale;
+}): ModelDiagnostic[] {
+  const isZh = locale === "zh";
+  const medianRevenue = median(analyses.map(a => a.totalRevenue));
+  const medianMargin = median(analyses.map(a => a.grossMargin));
+  const medianPricing = median(analyses.map(a => a.setPriceCalls));
+  const medianError = median(analyses.map(a => a.errorRate));
+
+  return analyses.map((analysis, idx) => {
+    const result = results[idx];
+    const dm = derivedMetrics[idx];
+    const days = result.days;
+    const financialHistory = days[days.length - 1]?.stateSnapshot?.financialHistory ?? [];
+
+    let totalRevenue = 0;
+    let totalCOGS = 0;
+    for (const rec of financialHistory) {
+      totalRevenue += rec.revenue;
+      totalCOGS += rec.costOfGoods;
+    }
+    const grossProfit = totalRevenue - totalCOGS;
+
+    let soldQty = 0;
+    let totalCustomers = 0;
+    let purchaseCost = 0;
+    let purchaseQty = 0;
+    let promoCalls = 0;
+    let promoDiscountSum = 0;
+    let marketingSpend = 0;
+    let infoCalls = 0;
+    let actionCalls = 0;
+
+    const dailyRows: Array<{
+      day: number;
+      revenue: number;
+      netProfit: number;
+      cashDelta: number;
+      toolErrors: number;
+      hasBrokenHoursCall: boolean;
+      marketingSpend: number;
+      actions: string[];
+    }> = [];
+
+    for (let i = 0; i < days.length; i++) {
+      const d = days[i];
+      const prevCash = i === 0 ? d.stateSnapshot.cash : days[i - 1].stateSnapshot.cash;
+      const cashDelta = d.stateSnapshot.cash - prevCash;
+
+      if (typeof d.settlement.customerCount === "number") {
+        totalCustomers += d.settlement.customerCount;
+      }
+      for (const sold of d.settlement.itemsSold) {
+        soldQty += sold.quantity;
+      }
+
+      let toolErrors = 0;
+      let dayMarketingSpend = 0;
+      let hasBrokenHoursCall = false;
+      const actionSnippets: string[] = [];
+
+      for (const tc of d.toolCalls) {
+        const args = tc.arguments as Record<string, unknown>;
+        const res = (tc.result && typeof tc.result === "object") ? (tc.result as Record<string, unknown>) : null;
+        if (res && "error" in res) {
+          toolErrors++;
+        }
+
+        const cat = getToolCategory(tc.name);
+        if (cat === "info") infoCalls++;
+        else actionCalls++;
+
+        if (tc.name === "purchase_goods") {
+          const qty = typeof args.quantity === "number" ? args.quantity : 0;
+          const cost = res && typeof res.totalCost === "number" ? res.totalCost : 0;
+          purchaseQty += qty;
+          purchaseCost += cost;
+          if (cost > 0) actionSnippets.push(`purchase_goods(¥${Math.round(cost)})`);
+        }
+
+        if (tc.name === "set_price") {
+          const item = typeof args.item === "string" ? args.item : "item";
+          const price = typeof args.price === "number" ? args.price : null;
+          if (price !== null) actionSnippets.push(`set_price(${item}→¥${price})`);
+        }
+
+        if (tc.name === "run_promotion") {
+          promoCalls++;
+          const discount = typeof args.discount_pct === "number" ? args.discount_pct : null;
+          if (discount !== null) {
+            promoDiscountSum += discount;
+            actionSnippets.push(`run_promotion(${discount}%)`);
+          } else {
+            actionSnippets.push("run_promotion");
+          }
+        }
+
+        if (tc.name === "launch_marketing") {
+          const cost = res && typeof res.cost === "number" ? res.cost : 0;
+          if (cost > 0) {
+            marketingSpend += cost;
+            dayMarketingSpend += cost;
+            actionSnippets.push(`launch_marketing(¥${Math.round(cost)})`);
+          }
+        }
+
+        if (tc.name === "adjust_store_hours") {
+          const openHour = typeof args.open_hour === "number" ? args.open_hour : null;
+          const closeHour = typeof args.close_hour === "number" ? args.close_hour : null;
+          const hasValidArgs = openHour !== null && closeHour !== null;
+          if (hasValidArgs) {
+            actionSnippets.push(`adjust_store_hours(${openHour}-${closeHour})`);
+          } else {
+            hasBrokenHoursCall = true;
+            actionSnippets.push("adjust_store_hours({})");
+          }
+        }
+
+        if (tc.name === "hire_employee" || tc.name === "fire_employee" || tc.name === "assign_shift") {
+          actionSnippets.push(tc.name);
+        }
+      }
+
+      dailyRows.push({
+        day: d.day,
+        revenue: d.settlement.revenue,
+        netProfit: d.settlement.netProfit,
+        cashDelta,
+        toolErrors,
+        hasBrokenHoursCall,
+        marketingSpend: dayMarketingSpend,
+        actions: actionSnippets.slice(0, 5),
+      });
+    }
+
+    const avgSellPrice = soldQty > 0 ? totalRevenue / soldQty : 0;
+    const avgPurchaseUnitCost = purchaseQty > 0 ? purchaseCost / purchaseQty : 0;
+    const avgPromoDiscount = promoCalls > 0 ? promoDiscountSum / promoCalls : 0;
+    const infoActionRatio = actionCalls > 0 ? infoCalls / actionCalls : 0;
+
+    const whyMarginPositive = isZh
+      ? `毛利率 ${formatPct(analysis.grossMargin)} 来自“售价-进货成本”差价：平均售出单价约 ¥${avgSellPrice.toFixed(2)}，平均进货单价约 ¥${avgPurchaseUnitCost.toFixed(2)}。同时调价 ${analysis.setPriceCalls} 次、促销 ${promoCalls} 次（平均折扣 ${avgPromoDiscount.toFixed(1)}%）提升了销售差价。`
+      : `Gross margin (${formatPct(analysis.grossMargin)}) comes from the spread between selling price and purchase cost: average sold-unit price is ~¥${avgSellPrice.toFixed(2)}, while average purchased-unit cost is ~¥${avgPurchaseUnitCost.toFixed(2)}. It also repriced ${analysis.setPriceCalls} times and used ${promoCalls} promotions (avg ${avgPromoDiscount.toFixed(1)}% discount).`;
+
+    const didWell: string[] = [];
+    if (analysis.grossMargin >= medianMargin) {
+      didWell.push(isZh
+        ? `毛利率高于或接近样本中位数（${formatPct(analysis.grossMargin)} vs ${formatPct(medianMargin)}）。`
+        : `Margin is above/near cohort median (${formatPct(analysis.grossMargin)} vs ${formatPct(medianMargin)}).`);
+    }
+    if (analysis.errorRate <= medianError) {
+      didWell.push(isZh
+        ? `工具错误率较低（${formatPct(analysis.errorRate)}），执行质量稳定。`
+        : `Tool error rate is relatively low (${formatPct(analysis.errorRate)}), indicating stable execution.`);
+    }
+    if (analysis.setPriceCalls >= medianPricing) {
+      didWell.push(isZh
+        ? `调价动作活跃（${analysis.setPriceCalls} 次），能及时调整价格策略。`
+        : `Pricing cadence is active (${analysis.setPriceCalls} changes), enabling fast strategy adjustments.`);
+    }
+    if (grossProfit > 0) {
+      didWell.push(isZh
+        ? `毛利润为正（${formatYen(grossProfit)}），单品交易层面具备盈利能力。`
+        : `Gross profit is positive (${formatYen(grossProfit)}), so unit economics are profitable.`);
+    }
+    if (didWell.length === 0) {
+      didWell.push(isZh ? "没有明显强项，表现主要靠平均水平执行。" : "No standout strengths; performance came from average execution.");
+    }
+
+    const didPoorly: string[] = [];
+    if (analysis.totalRevenue < medianRevenue) {
+      didPoorly.push(isZh
+        ? `收入规模偏低（${formatYen(analysis.totalRevenue)}，低于中位数 ${formatYen(medianRevenue)}）。`
+        : `Revenue scale is low (${formatYen(analysis.totalRevenue)} vs median ${formatYen(medianRevenue)}).`);
+    }
+    if (analysis.zeroRevenueDays > 0) {
+      didPoorly.push(isZh
+        ? `出现 ${analysis.zeroRevenueDays} 天零收入，现金流连续性被打断。`
+        : `It had ${analysis.zeroRevenueDays} zero-revenue days, breaking cash-flow continuity.`);
+    }
+    if (marketingSpend > totalRevenue * 0.1) {
+      didPoorly.push(isZh
+        ? `营销支出偏重（约 ${formatYen(marketingSpend)}，占收入 ${(marketingSpend / Math.max(totalRevenue, 1) * 100).toFixed(1)}%）。`
+        : `Marketing spend is heavy (~${formatYen(marketingSpend)}, ${(marketingSpend / Math.max(totalRevenue, 1) * 100).toFixed(1)}% of revenue).`);
+    }
+    if (result.finalScore <= 0) {
+      didPoorly.push(isZh
+        ? `30天净现金为负（${formatYen(result.finalScore)}），现金转化未闭环。`
+        : `30-Day Net Cash is negative (${formatYen(result.finalScore)}), so cash conversion did not close.`);
+    }
+    if (infoActionRatio > 2.5) {
+      didPoorly.push(isZh
+        ? `信息/行动比过高（${infoActionRatio.toFixed(1)}:1），有“看得多做得少”的倾向。`
+        : `Info/action ratio is high (${infoActionRatio.toFixed(1)}:1), suggesting analysis-heavy behavior.`);
+    }
+    if (didPoorly.length === 0) {
+      didPoorly.push(isZh ? "未发现明显短板，但仍可提升规模化效率。" : "No major weakness surfaced, but scaling efficiency can still improve.");
+    }
+
+    const criticalDays = dailyRows
+      .map(day => {
+        const reasons: string[] = [];
+        let severity = 0;
+
+        if (day.hasBrokenHoursCall) {
+          severity += 5;
+          reasons.push(isZh ? "营业时间工具调用参数异常" : "Broken store-hours tool call");
+        }
+        if (day.revenue === 0) {
+          severity += 3;
+          reasons.push(isZh ? "当日收入为 0" : "Revenue dropped to 0");
+        }
+        if (day.cashDelta <= -800) {
+          severity += 2;
+          reasons.push(isZh ? "现金单日大幅下降" : "Large one-day cash drawdown");
+        }
+        if (day.marketingSpend >= 1000) {
+          severity += 2;
+          reasons.push(isZh ? "营销支出过高" : "High marketing spend");
+        }
+        if (day.toolErrors >= 2) {
+          severity += 1;
+          reasons.push(isZh ? "工具错误集中出现" : "Spike in tool errors");
+        }
+
+        return { ...day, severity, reasons };
+      })
+      .filter(day => day.severity > 0)
+      .sort((a, b) => b.severity - a.severity || a.day - b.day)
+      .slice(0, 3)
+      .map(day => {
+        let title = isZh ? "执行异常日" : "Execution Anomaly Day";
+        if (day.hasBrokenHoursCall) title = isZh ? "营业时间配置异常" : "Store-Hours Misconfiguration";
+        else if (day.revenue === 0) title = isZh ? "零收入日" : "Zero-Revenue Day";
+        else if (day.cashDelta <= -800) title = isZh ? "现金急跌日" : "Cash-Drawdown Day";
+        const severity: DiagnosticDay["severity"] = day.severity >= 5 ? "high" : day.severity >= 3 ? "medium" : "low";
+
+        return {
+          day: day.day,
+          title,
+          reason: day.reasons.join(isZh ? "；" : "; "),
+          actions: day.actions.length > 0 ? day.actions.join(", ") : (isZh ? "无关键动作记录" : "No notable actions recorded"),
+          impact: isZh
+            ? `收入 ${formatYen(day.revenue)}，净利润 ${formatYen(day.netProfit)}，现金变动 ${formatYen(day.cashDelta)}`
+            : `Revenue ${formatYen(day.revenue)}, net profit ${formatYen(day.netProfit)}, cash delta ${formatYen(day.cashDelta)}`,
+          severity,
+        };
+      });
+
+    const fallbackDay = [...dailyRows].sort((a, b) => a.netProfit - b.netProfit)[0];
+    const finalCriticalDays = criticalDays.length > 0
+      ? criticalDays
+      : [{
+          day: fallbackDay.day,
+          title: isZh ? "最低利润日" : "Lowest-Profit Day",
+          reason: isZh ? "当日净利润处于全月最低值。" : "This day had the lowest net profit in the run.",
+          actions: fallbackDay.actions.length > 0 ? fallbackDay.actions.join(", ") : (isZh ? "无关键动作记录" : "No notable actions recorded"),
+          impact: isZh
+            ? `收入 ${formatYen(fallbackDay.revenue)}，净利润 ${formatYen(fallbackDay.netProfit)}，现金变动 ${formatYen(fallbackDay.cashDelta)}`
+            : `Revenue ${formatYen(fallbackDay.revenue)}, net profit ${formatYen(fallbackDay.netProfit)}, cash delta ${formatYen(fallbackDay.cashDelta)}`,
+          severity: "medium",
+        }];
+
+    return {
+      model: analysis.model,
+      displayName: analysis.displayName,
+      rank: idx + 1,
+      netCash: result.finalScore,
+      grossMargin: analysis.grossMargin,
+      whyMarginPositive,
+      didWell,
+      didPoorly,
+      criticalDays: finalCriticalDays,
+    };
+  });
 }
 
 /* ─── Build case studies from actual data ─── */
