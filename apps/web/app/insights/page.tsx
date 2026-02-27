@@ -5,11 +5,14 @@ import {
   formatYen,
   formatPct,
   getToolCategory,
+  getToolLabel,
 } from "@/lib/data";
 import { SectionHeader } from "@/components/SectionHeader";
 import { InsightCard } from "@/components/InsightCard";
 import { CaseStudyCard } from "@/components/CaseStudyCard";
 import { InsightsContent } from "./InsightsContent";
+import { DeepDiveReports, type DeepDiveReport } from "./DeepDiveReports";
+import type { DerivedMetrics, SimulationResult } from "@/lib/types";
 
 /* ─── Per-model analysis data ─── */
 
@@ -20,8 +23,11 @@ interface ModelAnalysis {
   setPriceCalls: number;
   purchaseCalls: number;
   zeroRevenueDays: number;
+  profitableDays: number;
   infoActionRatio: number;
   totalRevenue: number;
+  grossMargin: number;
+  errorRate: number;
   totalToolCalls: number;
   estimateOrderCalls: number;
   color: string;
@@ -115,6 +121,8 @@ export default function InsightsPage() {
     );
   }
 
+  const derivedMetrics = results.map(r => computeDerivedMetrics(r));
+
   // Build per-model analysis
   const MODEL_COLORS = [
     "#60a5fa", "#10b981", "#f59e0b", "#ef4444", "#a78bfa",
@@ -123,7 +131,7 @@ export default function InsightsPage() {
   ];
 
   const analyses: ModelAnalysis[] = results.map((r, idx) => {
-    const dm = computeDerivedMetrics(r);
+    const dm = derivedMetrics[idx];
 
     // Count zero-revenue days
     let zeroRevenueDays = 0;
@@ -151,8 +159,11 @@ export default function InsightsPage() {
       setPriceCalls: dm.setPriceCalls,
       purchaseCalls,
       zeroRevenueDays,
+      profitableDays: r.days.filter(d => d.settlement.netProfit > 0).length,
       infoActionRatio,
       totalRevenue: dm.totalRevenue,
+      grossMargin: dm.grossMargin,
+      errorRate: dm.errorRate,
       totalToolCalls: r.metrics.totalToolCalls,
       estimateOrderCalls,
       color: MODEL_COLORS[idx % MODEL_COLORS.length],
@@ -161,8 +172,10 @@ export default function InsightsPage() {
 
   // Classify into strategy groups
   const groupMap = new Map<StrategyType, ModelAnalysis[]>();
+  const strategyByModel = new Map<string, StrategyType>();
   for (const m of analyses) {
     const type = classifyStrategy(m);
+    strategyByModel.set(m.model, type);
     if (!groupMap.has(type)) groupMap.set(type, []);
     groupMap.get(type)!.push(m);
   }
@@ -249,6 +262,12 @@ export default function InsightsPage() {
 
   // Case studies — find specific patterns in the data
   const caseStudies = buildCaseStudies(analyses, results);
+  const deepDiveReports = buildDeepDiveReports({
+    results,
+    analyses,
+    derivedMetrics,
+    strategyByModel,
+  });
 
   return (
     <div className="container">
@@ -292,6 +311,9 @@ export default function InsightsPage() {
           <CaseStudyCard key={i} {...cs} />
         ))}
       </div>
+
+      <SectionHeader title="Model Deep Dive Reports" subtitle="long-form per model analysis with chart evidence" />
+      <DeepDiveReports reports={deepDiveReports} />
     </div>
   );
 }
@@ -300,7 +322,7 @@ export default function InsightsPage() {
 
 function buildCaseStudies(
   analyses: ModelAnalysis[],
-  results: import("@/lib/types").SimulationResult[],
+  results: SimulationResult[],
 ) {
   const cases: {
     icon: string;
@@ -411,4 +433,321 @@ function buildCaseStudies(
   }
 
   return cases;
+}
+
+/* ─── Deep Dive Reports ─── */
+
+type CategoryKey = "info" | "operation" | "personnel" | "finance" | "strategy";
+
+const CATEGORY_LABELS: Record<CategoryKey, string> = {
+  info: "Information",
+  operation: "Operations",
+  personnel: "Personnel",
+  finance: "Finance",
+  strategy: "Strategy",
+};
+
+function median(values: number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
+function normalizeTo100(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return 0;
+  if (Math.abs(max - min) < 1e-9) return 50;
+  return Math.round(((value - min) / (max - min)) * 100);
+}
+
+function getCallsByCategory(dm: DerivedMetrics): Record<CategoryKey, number> {
+  const counts: Record<CategoryKey, number> = {
+    info: 0,
+    operation: 0,
+    personnel: 0,
+    finance: 0,
+    strategy: 0,
+  };
+
+  for (const [toolName, count] of Object.entries(dm.callsByType)) {
+    const category = getToolCategory(toolName);
+    if (category in counts) {
+      counts[category as CategoryKey] += count;
+    } else {
+      counts.info += count;
+    }
+  }
+
+  return counts;
+}
+
+function topToolsText(dm: DerivedMetrics): string {
+  const topTools = Object.entries(dm.callsByType)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name, count]) => `${getToolLabel(name)} (${count})`);
+
+  return topTools.length > 0 ? topTools.join(", ") : "No significant tool usage recorded";
+}
+
+function getPhaseActionCounts(result: SimulationResult) {
+  const counts = {
+    early: { setPrice: 0, purchase: 0, promotion: 0 },
+    mid: { setPrice: 0, purchase: 0, promotion: 0 },
+    late: { setPrice: 0, purchase: 0, promotion: 0 },
+  };
+
+  for (const day of result.days) {
+    const phase = day.day <= 10 ? "early" : day.day <= 20 ? "mid" : "late";
+    for (const call of day.toolCalls) {
+      if (call.name === "set_price") counts[phase].setPrice += 1;
+      if (call.name === "purchase_goods") counts[phase].purchase += 1;
+      if (call.name === "run_promotion") counts[phase].promotion += 1;
+    }
+  }
+
+  return counts;
+}
+
+function getBestAndWorstDay(result: SimulationResult) {
+  const fallback = { day: 1, profit: 0, revenue: 0 };
+  if (result.days.length === 0) return { best: fallback, worst: fallback };
+
+  let best = {
+    day: result.days[0].day,
+    profit: result.days[0].settlement.netProfit,
+    revenue: result.days[0].settlement.revenue,
+  };
+  let worst = { ...best };
+
+  for (const day of result.days) {
+    const profit = day.settlement.netProfit;
+    if (profit > best.profit) {
+      best = { day: day.day, profit, revenue: day.settlement.revenue };
+    }
+    if (profit < worst.profit) {
+      worst = { day: day.day, profit, revenue: day.settlement.revenue };
+    }
+  }
+
+  return { best, worst };
+}
+
+function buildDeepDiveReports({
+  results,
+  analyses,
+  derivedMetrics,
+  strategyByModel,
+}: {
+  results: SimulationResult[];
+  analyses: ModelAnalysis[];
+  derivedMetrics: DerivedMetrics[];
+  strategyByModel: Map<string, StrategyType>;
+}): DeepDiveReport[] {
+  const scoreValues = results.map(r => r.finalScore);
+  const revenueValues = analyses.map(a => a.totalRevenue);
+  const marginValues = analyses.map(a => a.grossMargin);
+  const reliabilityValues = analyses.map(a => 1 - a.errorRate);
+  const pricingValues = analyses.map(a => a.setPriceCalls);
+  const profitableValues = analyses.map(a => a.profitableDays);
+
+  const scoreMin = Math.min(...scoreValues);
+  const scoreMax = Math.max(...scoreValues);
+  const revenueMin = Math.min(...revenueValues);
+  const revenueMax = Math.max(...revenueValues);
+  const marginMin = Math.min(...marginValues);
+  const marginMax = Math.max(...marginValues);
+  const reliabilityMin = Math.min(...reliabilityValues);
+  const reliabilityMax = Math.max(...reliabilityValues);
+  const pricingMin = Math.min(...pricingValues);
+  const pricingMax = Math.max(...pricingValues);
+  const profitableMin = Math.min(...profitableValues);
+  const profitableMax = Math.max(...profitableValues);
+
+  const medianMargin = median(marginValues);
+  const medianErrorRate = median(analyses.map(a => a.errorRate));
+  const medianPricing = median(pricingValues);
+  const medianZeroRevenueDays = median(analyses.map(a => a.zeroRevenueDays));
+
+  return analyses.map((analysis, idx) => {
+    const result = results[idx];
+    const dm = derivedMetrics[idx];
+    const strategyType = strategyByModel.get(analysis.model) ?? "balanced";
+    const strategyTitle = STRATEGY_META[strategyType].title;
+    const strategyNarrative = STRATEGY_SUMMARIES[strategyType];
+
+    const referenceIdx = idx === 0 ? Math.min(1, analyses.length - 1) : 0;
+    const referenceAnalysis = analyses[referenceIdx];
+    const referenceResult = results[referenceIdx];
+    const referenceDm = derivedMetrics[referenceIdx];
+    const hasReferencePeer = analyses.length > 1 && referenceIdx !== idx;
+
+    const modelKey = analysis.displayName;
+    const referenceName = hasReferencePeer
+      ? referenceAnalysis.displayName
+      : `${analysis.displayName} Baseline`;
+    const referenceKey = referenceName;
+
+    const callsByCategory = getCallsByCategory(dm);
+    const referenceCallsByCategory = getCallsByCategory(referenceDm);
+    const infoShare = analysis.totalToolCalls > 0 ? callsByCategory.info / analysis.totalToolCalls : 0;
+    const actionShare = 1 - infoShare;
+    const phaseActions = getPhaseActionCounts(result);
+    const { best, worst } = getBestAndWorstDay(result);
+
+    const promotionCalls = dm.callsByType["run_promotion"] ?? 0;
+    const hiringCalls = dm.callsByType["hire_employee"] ?? 0;
+    const loanCalls = (dm.callsByType["take_loan"] ?? 0) + (dm.callsByType["repay_loan"] ?? 0);
+
+    const executiveSummary =
+      `${analysis.displayName} finished rank #${idx + 1} with ${formatYen(result.finalScore)} in 30-Day Net Cash. ` +
+      `It generated ${formatYen(analysis.totalRevenue)} total revenue at ${formatPct(analysis.grossMargin)} gross margin, ` +
+      `while executing ${analysis.totalToolCalls} tool calls with a ${formatPct(analysis.errorRate)} tool call error rate.`;
+
+    const operatingStyle =
+      `Operating style: ${strategyTitle}. ${strategyNarrative} ` +
+      `In this run, ${analysis.displayName} allocated ${formatPct(infoShare)} of calls to information gathering ` +
+      `and ${formatPct(actionShare)} to execution actions, with ${analysis.setPriceCalls} pricing updates and ${analysis.purchaseCalls} purchase attempts.`;
+
+    const actionHighlights = [
+      `Most-used tools: ${topToolsText(dm)}.`,
+      `Action mix: ${analysis.setPriceCalls} set_price, ${analysis.purchaseCalls} purchase_goods, ${promotionCalls} run_promotion, ${hiringCalls} hire_employee, ${loanCalls} finance calls.`,
+      `Pacing by phase (early/mid/late): set_price ${phaseActions.early.setPrice}/${phaseActions.mid.setPrice}/${phaseActions.late.setPrice}, purchases ${phaseActions.early.purchase}/${phaseActions.mid.purchase}/${phaseActions.late.purchase}, promotions ${phaseActions.early.promotion}/${phaseActions.mid.promotion}/${phaseActions.late.promotion}.`,
+      `Operational stability: ${analysis.profitableDays} profitable days, ${analysis.zeroRevenueDays} zero-revenue days, best day D${best.day} (${formatYen(best.profit)}), worst day D${worst.day} (${formatYen(worst.profit)}).`,
+    ];
+
+    const strengths: string[] = [];
+    if (result.finalScore > 0) strengths.push(`Finished with positive 30-Day Net Cash (${formatYen(result.finalScore)}), indicating successful cash conversion.`);
+    if (analysis.grossMargin >= medianMargin) strengths.push(`Gross margin (${formatPct(analysis.grossMargin)}) is above or near cohort median (${formatPct(medianMargin)}).`);
+    if (analysis.errorRate <= medianErrorRate) strengths.push(`Tool execution reliability is solid with ${formatPct(analysis.errorRate)} error rate (median: ${formatPct(medianErrorRate)}).`);
+    if (analysis.zeroRevenueDays <= medianZeroRevenueDays) strengths.push(`Maintained fewer zero-revenue days (${analysis.zeroRevenueDays}) than typical peers.`);
+    if (analysis.setPriceCalls >= medianPricing) strengths.push(`Used pricing as an active lever (${analysis.setPriceCalls} set_price calls, median: ${medianPricing.toFixed(0)}).`);
+    if (strengths.length === 0) strengths.push("No dominant advantage surfaced; performance came from moderate execution across multiple dimensions.");
+
+    const weaknesses: string[] = [];
+    if (result.finalScore <= 0) weaknesses.push(`Ended below break-even with ${formatYen(result.finalScore)} 30-Day Net Cash.`);
+    if (analysis.errorRate > medianErrorRate) weaknesses.push(`Tool Call Error Rate (${formatPct(analysis.errorRate)}) is above median (${formatPct(medianErrorRate)}), causing execution leakage.`);
+    if (analysis.zeroRevenueDays > medianZeroRevenueDays) weaknesses.push(`High zero-revenue exposure (${analysis.zeroRevenueDays} days) indicates stockout or demand conversion issues.`);
+    if (analysis.setPriceCalls < medianPricing) weaknesses.push(`Pricing cadence is below median (${analysis.setPriceCalls} vs ${medianPricing.toFixed(0)}), reducing adaptability.`);
+    if (analysis.infoActionRatio > 3) weaknesses.push(`Info-to-action ratio (${analysis.infoActionRatio.toFixed(1)}:1) suggests analysis-heavy behavior with delayed execution.`);
+    if (weaknesses.length === 0) weaknesses.push("No severe operational weakness identified in this run.");
+
+    const successReasons: string[] = [];
+    if (analysis.setPriceCalls >= medianPricing) successReasons.push("Frequent pricing updates improved demand capture and protected margin under changing conditions.");
+    if (analysis.errorRate <= medianErrorRate) successReasons.push("Lower execution errors preserved action effectiveness and reduced wasted turns.");
+    if (analysis.zeroRevenueDays <= medianZeroRevenueDays) successReasons.push("Fewer zero-revenue days helped maintain steady cash inflow throughout the month.");
+    if (analysis.totalRevenue > referenceAnalysis.totalRevenue) successReasons.push(`Revenue outperformed ${referenceAnalysis.displayName} by ${formatYen(analysis.totalRevenue - referenceAnalysis.totalRevenue)}.`);
+    if (successReasons.length === 0) successReasons.push("Primary success signals were limited; gains came from incremental execution rather than one decisive edge.");
+
+    const failureReasons: string[] = [];
+    if (analysis.totalRevenue < referenceAnalysis.totalRevenue) failureReasons.push(`Revenue trailed ${referenceAnalysis.displayName} by ${formatYen(referenceAnalysis.totalRevenue - analysis.totalRevenue)}.`);
+    if (analysis.grossMargin < referenceAnalysis.grossMargin) failureReasons.push(`Margin lagged benchmark by ${((referenceAnalysis.grossMargin - analysis.grossMargin) * 100).toFixed(1)} points.`);
+    if (analysis.errorRate > referenceAnalysis.errorRate) failureReasons.push(`Error rate was ${((analysis.errorRate - referenceAnalysis.errorRate) * 100).toFixed(1)} points higher than benchmark.`);
+    if (analysis.zeroRevenueDays > referenceAnalysis.zeroRevenueDays) failureReasons.push(`More zero-revenue days (${analysis.zeroRevenueDays} vs ${referenceAnalysis.zeroRevenueDays}) reduced compounding cash flow.`);
+    if (failureReasons.length === 0) failureReasons.push("No major structural failure observed relative to the reference model.");
+
+    const relationLabel = hasReferencePeer ? (idx === 0 ? "vs Runner-up" : "vs Top Model") : "Single Model Run";
+    const comparisonNarrative = hasReferencePeer
+      ? `${analysis.displayName} is ${formatYen(result.finalScore - referenceResult.finalScore)} away from ${referenceAnalysis.displayName} in 30-Day Net Cash. ` +
+        `The gap combines revenue (${formatYen(analysis.totalRevenue - referenceAnalysis.totalRevenue)}), margin (${((analysis.grossMargin - referenceAnalysis.grossMargin) * 100).toFixed(1)} pts), and tool reliability (${((analysis.errorRate - referenceAnalysis.errorRate) * 100).toFixed(1)} pts error-rate delta).`
+      : "Only one model is available in this run, so comparative benchmarking is not available yet.";
+
+    const trendData: Record<string, string | number>[] = [];
+    let modelCum = 0;
+    let referenceCum = 0;
+    const days = Math.max(result.metrics.dailyProfitTrend.length, referenceResult.metrics.dailyProfitTrend.length);
+    for (let day = 0; day < days; day++) {
+      modelCum += result.metrics.dailyProfitTrend[day] ?? 0;
+      referenceCum += referenceResult.metrics.dailyProfitTrend[day] ?? 0;
+      trendData.push({
+        day: day + 1,
+        [modelKey]: Math.round(modelCum),
+        [referenceKey]: Math.round(referenceCum),
+      });
+    }
+
+    const radarData: Record<string, string | number>[] = [
+      {
+        metric: "Net Cash",
+        [modelKey]: normalizeTo100(result.finalScore, scoreMin, scoreMax),
+        [referenceKey]: normalizeTo100(referenceResult.finalScore, scoreMin, scoreMax),
+      },
+      {
+        metric: "Revenue",
+        [modelKey]: normalizeTo100(analysis.totalRevenue, revenueMin, revenueMax),
+        [referenceKey]: normalizeTo100(referenceAnalysis.totalRevenue, revenueMin, revenueMax),
+      },
+      {
+        metric: "Gross Margin",
+        [modelKey]: normalizeTo100(analysis.grossMargin, marginMin, marginMax),
+        [referenceKey]: normalizeTo100(referenceAnalysis.grossMargin, marginMin, marginMax),
+      },
+      {
+        metric: "Tool Reliability",
+        [modelKey]: normalizeTo100(1 - analysis.errorRate, reliabilityMin, reliabilityMax),
+        [referenceKey]: normalizeTo100(1 - referenceAnalysis.errorRate, reliabilityMin, reliabilityMax),
+      },
+      {
+        metric: "Pricing Activity",
+        [modelKey]: normalizeTo100(analysis.setPriceCalls, pricingMin, pricingMax),
+        [referenceKey]: normalizeTo100(referenceAnalysis.setPriceCalls, pricingMin, pricingMax),
+      },
+      {
+        metric: "Profitable Days",
+        [modelKey]: normalizeTo100(analysis.profitableDays, profitableMin, profitableMax),
+        [referenceKey]: normalizeTo100(referenceAnalysis.profitableDays, profitableMin, profitableMax),
+      },
+    ];
+
+    const toolMixData: Record<string, string | number>[] = (Object.keys(CATEGORY_LABELS) as CategoryKey[]).map(cat => ({
+      category: CATEGORY_LABELS[cat],
+      [modelKey]: callsByCategory[cat],
+      [referenceKey]: referenceCallsByCategory[cat],
+    }));
+
+    return {
+      modelId: analysis.model,
+      displayName: analysis.displayName,
+      rank: idx + 1,
+      strategyTitle,
+      executiveSummary,
+      operatingStyle,
+      actionHighlights,
+      strengths,
+      weaknesses,
+      successReasons,
+      failureReasons,
+      comparisonNarrative,
+      snapshot: {
+        netCash: result.finalScore,
+        totalRevenue: analysis.totalRevenue,
+        grossMargin: analysis.grossMargin,
+        toolErrorRate: analysis.errorRate,
+        toolCalls: analysis.totalToolCalls,
+        zeroRevenueDays: analysis.zeroRevenueDays,
+        profitableDays: analysis.profitableDays,
+      },
+      comparison: {
+        relationLabel,
+        referenceName,
+        netCashDiff: result.finalScore - referenceResult.finalScore,
+        revenueDiff: analysis.totalRevenue - referenceAnalysis.totalRevenue,
+        marginDiff: analysis.grossMargin - referenceAnalysis.grossMargin,
+        errorRateDiff: analysis.errorRate - referenceAnalysis.errorRate,
+      },
+      charts: {
+        trendData,
+        radarData,
+        toolMixData,
+      },
+      chartKeys: {
+        model: modelKey,
+        reference: referenceKey,
+      },
+      colors: {
+        model: analysis.color,
+        reference: referenceAnalysis.color,
+      },
+    };
+  });
 }
