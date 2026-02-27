@@ -45,43 +45,39 @@ export default function Home() {
         </div>
       ) : (
         <>
-          <div className="leaderboard-highlights" style={{ marginBottom: "1.5rem" }}>
-            <article className="highlight-card highlight-card-overall">
-              <div className="highlight-watermark" aria-hidden>
+          <section className="top-signals" aria-label="Top Signals" style={{ marginBottom: "1.25rem" }}>
+            <article className="top-signal top-signal-overall" title={best ? getModelDisplayName(best.model) : "–"}>
+              <div className="top-signal-mark" aria-hidden>
                 <img src="/leaderboard/claude-color.svg" alt="" />
               </div>
-              <p className="highlight-kicker">Overall Winner</p>
-              <div className="highlight-value">{best ? getModelDisplayName(best.model) : "–"}</div>
-              <p className="highlight-subtitle highlight-subtitle-nowrap">Highest Net Cash &amp; Consistency</p>
+              <p className="top-signal-label">Overall Winner</p>
+              <p className="top-signal-value">{best ? getModelDisplayName(best.model) : "–"}</p>
+              <p className="top-signal-meta">Highest Net Cash &amp; Consistency</p>
             </article>
 
-            <article className="highlight-card highlight-card-cash">
-              <div className="highlight-watermark highlight-watermark-symbol" aria-hidden>
-                ¥
-              </div>
-              <p className="highlight-kicker">Best 30-Day Net Cash</p>
-              <div className="highlight-value">{best ? formatYen(best.finalScore) : "–"}</div>
-              <p className="highlight-subtitle">Record High Performance</p>
+            <article className="top-signal top-signal-cash">
+              <div className="top-signal-mark top-signal-mark-symbol" aria-hidden>¥</div>
+              <p className="top-signal-label">Best 30-Day Net Cash</p>
+              <p className="top-signal-value top-signal-value-cash">{best ? formatYen(best.finalScore) : "–"}</p>
+              <p className="top-signal-meta">Top cash outcome</p>
             </article>
 
-            <article className="highlight-card highlight-card-error">
-              <div className="highlight-watermark highlight-watermark-symbol" aria-hidden>
-                ✓
-              </div>
-              <p className="highlight-kicker">Lowest Tool Call Error Rate</p>
-              <div className="highlight-value">{lowestErrorRateModel}</div>
-              <p className="highlight-subtitle">Most Reliable Execution</p>
+            <article className="top-signal top-signal-error" title={lowestErrorRateModel}>
+              <div className="top-signal-mark top-signal-mark-symbol" aria-hidden>✓</div>
+              <p className="top-signal-label">Lowest Tool Call Error Rate</p>
+              <p className="top-signal-value">{lowestErrorRateModel}</p>
+              <p className="top-signal-meta">Most reliable execution</p>
             </article>
 
-            <article className="highlight-card highlight-card-margin">
-              <div className="highlight-watermark" aria-hidden>
+            <article className="top-signal top-signal-margin" title={bestGrossMarginModel}>
+              <div className="top-signal-mark" aria-hidden>
                 <img src="/leaderboard/minimax-color.svg" alt="" />
               </div>
-              <p className="highlight-kicker">Best Gross Margin</p>
-              <div className="highlight-value">{bestGrossMarginModel}</div>
-              <p className="highlight-subtitle">Most Efficient Sales</p>
+              <p className="top-signal-label">Best Gross Margin</p>
+              <p className="top-signal-value">{bestGrossMarginModel}</p>
+              <p className="top-signal-meta">Most efficient sales mix</p>
             </article>
-          </div>
+          </section>
 
           <Leaderboard results={results} derivedMetrics={derivedMetrics} />
 

@@ -214,6 +214,143 @@ a:hover {
 
 /* ─── Leaderboard Highlight Cards ─── */
 
+.top-signals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.top-signal {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  padding: 0.75rem 3.2rem 0.75rem 0.85rem;
+  min-width: 0;
+}
+
+.top-signal-label {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.top-signal-value {
+  position: relative;
+  z-index: 1;
+  margin: 0.2rem 0 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-signal-value-cash {
+  font-family: var(--font-mono);
+  letter-spacing: 0.01em;
+}
+
+.top-signal-meta {
+  position: relative;
+  z-index: 1;
+  margin: 0.3rem 0 0;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-signal-mark {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  width: 40px;
+  height: 40px;
+  opacity: 0.16;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.top-signal-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.top-signal-mark-symbol {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.top-signal-overall {
+  border-color: #f5d089;
+  background: linear-gradient(180deg, #fffaf0 0%, #ffffff 92%);
+}
+
+.top-signal-overall .top-signal-label,
+.top-signal-overall .top-signal-value {
+  color: #ca8a04;
+}
+
+.top-signal-overall .top-signal-mark {
+  opacity: 0.14;
+}
+
+.top-signal-cash {
+  border-color: #a7f3d0;
+  background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 92%);
+}
+
+.top-signal-cash .top-signal-label,
+.top-signal-cash .top-signal-value {
+  color: #059669;
+}
+
+.top-signal-cash .top-signal-mark-symbol {
+  color: #059669;
+}
+
+.top-signal-error {
+  border-color: #bfdbfe;
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 92%);
+}
+
+.top-signal-error .top-signal-label,
+.top-signal-error .top-signal-value {
+  color: #0284c7;
+}
+
+.top-signal-error .top-signal-mark-symbol {
+  color: #0284c7;
+}
+
+.top-signal-margin {
+  border-color: #ddd6fe;
+  background: linear-gradient(180deg, #f5f3ff 0%, #ffffff 92%);
+}
+
+.top-signal-margin .top-signal-label,
+.top-signal-margin .top-signal-value {
+  color: #8b5cf6;
+}
+
+.top-signal-margin .top-signal-mark {
+  opacity: 0.14;
+}
+
 .leaderboard-highlights {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1961,6 +2098,10 @@ thead tr:hover {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .top-signals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .leaderboard-highlights {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2050,6 +2191,10 @@ thead tr:hover {
   }
 
   .grid-2, .grid-3, .grid-4, .grid-6 {
+    grid-template-columns: 1fr;
+  }
+
+  .top-signals {
     grid-template-columns: 1fr;
   }
 
