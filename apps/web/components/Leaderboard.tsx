@@ -99,27 +99,6 @@ function ModelNameMarquee({ name }: { name: string }) {
 export function Leaderboard({ results, derivedMetrics }: LeaderboardProps) {
   return (
     <div className="card leaderboard-table">
-      <details className="metrics-guide">
-        <summary>Metrics Guide</summary>
-        <p className="metrics-guide-intro">
-          Quick definitions for the leaderboard columns:
-        </p>
-        <ul className="metrics-guide-list">
-          <li>
-            <strong>30-Day Net Cash (¥):</strong> Final cash minus starting cash minus outstanding loans; this is the ranking metric.
-          </li>
-          <li>
-            <strong>Gross Margin:</strong> (Revenue - COGS) / Revenue for sold items.
-          </li>
-          <li>
-            <strong>Tool Call Error Rate:</strong> Percentage of tool calls that returned errors.
-          </li>
-          <li>
-            <strong>30-Day Profit:</strong> Cumulative daily net profit trend over 30 days (sparkline).
-          </li>
-        </ul>
-      </details>
-
       <table>
         <thead>
           <tr>
