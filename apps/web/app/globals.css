@@ -212,6 +212,151 @@ a:hover {
   font-weight: 500;
 }
 
+/* ─── Leaderboard Highlight Cards ─── */
+
+.leaderboard-highlights {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.highlight-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: 1rem 5.25rem 1rem 1rem;
+  min-height: 132px;
+  box-shadow: var(--shadow-sm);
+}
+
+.highlight-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.highlight-kicker {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+}
+
+.highlight-value {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.14;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.highlight-subtitle {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.highlight-watermark {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0.15;
+}
+
+.highlight-watermark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.highlight-watermark-symbol {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.highlight-card-overall {
+  border-color: #f5d089;
+  background: linear-gradient(180deg, #fffaf0 0%, #ffffff 85%);
+}
+
+.highlight-card-overall .highlight-kicker,
+.highlight-card-overall .highlight-value {
+  color: #ca8a04;
+}
+
+.highlight-card-overall .highlight-value {
+  font-size: clamp(1.1rem, 1.5vw, 1.95rem);
+}
+
+.highlight-card-overall .highlight-watermark {
+  opacity: 0.13;
+}
+
+.highlight-card-cash {
+  border-color: #a7f3d0;
+  background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 85%);
+}
+
+.highlight-card-cash .highlight-kicker,
+.highlight-card-cash .highlight-value {
+  color: #059669;
+}
+
+.highlight-card-cash .highlight-value {
+  font-size: clamp(1.45rem, 2vw, 2.6rem);
+  font-family: var(--font-mono);
+  letter-spacing: 0.01em;
+}
+
+.highlight-card-cash .highlight-watermark-symbol {
+  color: #059669;
+}
+
+.highlight-card-error {
+  border-color: #bfdbfe;
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 85%);
+}
+
+.highlight-card-error .highlight-kicker,
+.highlight-card-error .highlight-value {
+  color: #0284c7;
+}
+
+.highlight-card-error .highlight-value {
+  font-size: clamp(1.1rem, 1.45vw, 1.9rem);
+}
+
+.highlight-card-error .highlight-watermark-symbol {
+  color: #0284c7;
+}
+
+.highlight-card-margin {
+  border-color: #ddd6fe;
+  background: linear-gradient(180deg, #f5f3ff 0%, #ffffff 85%);
+}
+
+.highlight-card-margin .highlight-kicker,
+.highlight-card-margin .highlight-value {
+  color: #8b5cf6;
+}
+
+.highlight-card-margin .highlight-value {
+  font-size: clamp(1.1rem, 1.45vw, 1.9rem);
+}
+
+.highlight-card-margin .highlight-watermark {
+  opacity: 0.13;
+}
+
 /* ─── Grid Utilities ─── */
 
 .grid-2 {
@@ -1020,6 +1165,10 @@ thead tr:hover {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .leaderboard-highlights {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .grid-6 {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -1062,6 +1211,20 @@ thead tr:hover {
 
   .grid-2, .grid-3, .grid-4, .grid-6 {
     grid-template-columns: 1fr;
+  }
+
+  .leaderboard-highlights {
+    grid-template-columns: 1fr;
+  }
+
+  .highlight-card {
+    min-height: 124px;
+    padding-right: 4.75rem;
+  }
+
+  .highlight-watermark {
+    width: 60px;
+    height: 60px;
   }
 
   .nav {
