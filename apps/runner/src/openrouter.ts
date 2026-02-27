@@ -44,6 +44,7 @@ interface ChatResponse {
  * Without this parameter these models may return empty responses.
  */
 const REASONING_MODELS = [
+  "bytedance-seed/seed-2.0-mini",
   "openai/gpt-5.3-codex",
   "openai/gpt-5.2-codex",
   "openai/gpt-5.2",
@@ -88,7 +89,7 @@ export class OpenRouterClient {
       tool_choice: "auto",
     };
 
-    // OpenAI reasoning models require this parameter
+    // Models in REASONING_MODELS require this parameter.
     if (this.reasoning) {
       body.reasoning = { enabled: true };
     }
