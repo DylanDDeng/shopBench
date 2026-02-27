@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 interface CaseStudyProps {
   icon: string;
   title: string;
@@ -8,8 +10,11 @@ interface CaseStudyProps {
 }
 
 export function CaseStudyCard({ icon, title, model, narrative, stats, accentColor }: CaseStudyProps) {
+  const cardStyle = { "--case-accent": accentColor ?? "#f59e0b" } as CSSProperties;
+
   return (
-    <div className="case-study" style={accentColor ? { borderLeftColor: accentColor } : undefined}>
+    <div className="case-study" style={cardStyle}>
+      <div className="case-study-kicker">Failure Pattern</div>
       <div className="case-study-header">
         <span className="case-study-icon">{icon}</span>
         <div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { formatYen } from "@/lib/types";
 
 interface StrategyModelData {
@@ -32,28 +32,30 @@ export function StrategyGroup({
   defaultOpen = false,
 }: StrategyGroupProps) {
   const [open, setOpen] = useState(defaultOpen);
+  const previewModels = models.map(m => m.displayName).join(", ");
+  const rootStyle = { "--strategy-accent": color } as CSSProperties;
 
   return (
-    <div className="strategy-group" style={{ borderLeftColor: color }}>
+    <div className="strategy-group" style={rootStyle}>
       <button className="strategy-header" onClick={() => setOpen(!open)}>
         <div className="strategy-title">
-          <span className="strategy-emoji">{emoji}</span>
-          <span className="strategy-name">{title}</span>
-          <span className="strategy-models-preview">
-            {models.map(m => m.displayName).join(", ")}
-          </span>
+          <div className="strategy-title-row">
+            <span className="strategy-emoji">{emoji}</span>
+            <span className="strategy-name">{title}</span>
+            <span className="strategy-count">{models.length} models</span>
+          </div>
+          <span className="strategy-models-preview">{previewModels}</span>
         </div>
-        <span className="strategy-chevron">{open ? "▴" : "▾"}</span>
+        <div className="strategy-header-right">
+          <span className={`strategy-avg-chip ${avgNetProfit >= 0 ? "positive" : "negative"}`}>
+            Avg Net Cash {formatYen(avgNetProfit)}
+          </span>
+          <span className="strategy-chevron">{open ? "▴" : "▾"}</span>
+        </div>
       </button>
 
       <div className={`strategy-body ${open ? "expanded" : "collapsed"}`}>
         <p className="strategy-summary">{summary}</p>
-        <div className="strategy-avg">
-          Average Net Profit:{" "}
-          <span className={avgNetProfit >= 0 ? "profit-positive" : "profit-negative"}>
-            {formatYen(avgNetProfit)}
-          </span>
-        </div>
         <table className="strategy-table">
           <thead>
             <tr>

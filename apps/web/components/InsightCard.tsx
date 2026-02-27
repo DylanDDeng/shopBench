@@ -8,9 +8,11 @@ interface InsightCardProps {
 export function InsightCard({ icon, value, label, description }: InsightCardProps) {
   return (
     <div className="insight-card">
-      <div className="insight-icon">{icon}</div>
+      <div className="insight-card-head">
+        <div className="insight-icon">{icon}</div>
+        <div className="insight-label">{label}</div>
+      </div>
       <div className="insight-value">{value}</div>
-      <div className="insight-label">{label}</div>
       <div className="insight-desc">{description}</div>
     </div>
   );

@@ -259,6 +259,8 @@ export default function InsightsPage() {
       description: `${bestModel.displayName} outperformed ${worstModel.displayName} \u{2014} bigger models aren't always better`,
     },
   ];
+  const strongestGroup = [...strategyGroups].sort((a, b) => b.avgNetProfit - a.avgNetProfit)[0];
+  const largestGroup = [...strategyGroups].sort((a, b) => b.models.length - a.models.length)[0];
 
   // Case studies — find specific patterns in the data
   const caseStudies = buildCaseStudies(analyses, results);
@@ -278,12 +280,48 @@ export default function InsightsPage() {
         </p>
       </div>
 
-      <SectionHeader title="Key Findings" subtitle={`across ${analyses.length} models`} />
-      <div className="insight-grid">
-        {insights.map((ins, i) => (
-          <InsightCard key={i} {...ins} />
-        ))}
-      </div>
+      <section className="insights-intro card-flat">
+        <div className="insights-intro-kicker">Insights Brief</div>
+        <h2 className="insights-intro-title">What separates winning model operators from struggling ones</h2>
+        <p className="insights-intro-copy">
+          Top performers combine frequent price adjustments with disciplined purchasing and low tool-call failure. Low performers
+          either under-act on pricing or spend too much on analysis without execution.
+        </p>
+        <div className="insights-intro-pills">
+          <div className="insights-intro-pill">
+            <span>Profitable Models</span>
+            <strong>{profitableCount} / {analyses.length}</strong>
+          </div>
+          <div className="insights-intro-pill">
+            <span>Best Correlation Signal</span>
+            <strong>Pricing ↔ Net Cash (r={priceR.toFixed(2)})</strong>
+          </div>
+          {strongestGroup ? (
+            <div className="insights-intro-pill">
+              <span>Strongest Strategy Cluster</span>
+              <strong>{strongestGroup.title}</strong>
+            </div>
+          ) : null}
+          {largestGroup ? (
+            <div className="insights-intro-pill">
+              <span>Largest Strategy Cluster</span>
+              <strong>{largestGroup.title} ({largestGroup.models.length})</strong>
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="insights-block">
+        <div className="insights-block-head">
+          <h2>Key Findings</h2>
+          <span className="insights-block-subtitle">across {analyses.length} models</span>
+        </div>
+        <div className="insight-grid insight-grid-premium">
+          {insights.map((ins, i) => (
+            <InsightCard key={i} {...ins} />
+          ))}
+        </div>
+      </section>
 
       <InsightsContent
         scatterData={scatterData}
@@ -305,12 +343,17 @@ export default function InsightsPage() {
         }))}
       />
 
-      <SectionHeader title="Failure Case Studies" subtitle="patterns to avoid" />
-      <div className="case-study-grid">
-        {caseStudies.map((cs, i) => (
-          <CaseStudyCard key={i} {...cs} />
-        ))}
-      </div>
+      <section className="insights-block">
+        <div className="insights-block-head">
+          <h2>Failure Case Studies</h2>
+          <span className="insights-block-subtitle">patterns to avoid</span>
+        </div>
+        <div className="case-study-grid">
+          {caseStudies.map((cs, i) => (
+            <CaseStudyCard key={i} {...cs} />
+          ))}
+        </div>
+      </section>
 
       <SectionHeader title="Model Deep Dive Reports" subtitle="long-form per model analysis with chart evidence" />
       <DeepDiveReports reports={deepDiveReports} />
@@ -509,6 +552,27 @@ function getPhaseActionCounts(result: SimulationResult) {
   return counts;
 }
 
+function getPhaseMetrics(result: SimulationResult) {
+  const metrics = {
+    early: { revenue: 0, profit: 0, toolCalls: 0, errors: 0, zeroRevenueDays: 0 },
+    mid: { revenue: 0, profit: 0, toolCalls: 0, errors: 0, zeroRevenueDays: 0 },
+    late: { revenue: 0, profit: 0, toolCalls: 0, errors: 0, zeroRevenueDays: 0 },
+  };
+
+  for (const day of result.days) {
+    const phase = day.day <= 10 ? "early" : day.day <= 20 ? "mid" : "late";
+    metrics[phase].revenue += day.settlement.revenue;
+    metrics[phase].profit += day.settlement.netProfit;
+    metrics[phase].toolCalls += day.toolCalls.length;
+    metrics[phase].errors += day.toolCalls.filter(tc => {
+      return typeof tc.result === "object" && tc.result !== null && "error" in (tc.result as Record<string, unknown>);
+    }).length;
+    if (day.settlement.revenue === 0) metrics[phase].zeroRevenueDays += 1;
+  }
+
+  return metrics;
+}
+
 function getBestAndWorstDay(result: SimulationResult) {
   const fallback = { day: 1, profit: 0, revenue: 0 };
   if (result.days.length === 0) return { best: fallback, worst: fallback };
@@ -593,6 +657,7 @@ function buildDeepDiveReports({
     const infoShare = analysis.totalToolCalls > 0 ? callsByCategory.info / analysis.totalToolCalls : 0;
     const actionShare = 1 - infoShare;
     const phaseActions = getPhaseActionCounts(result);
+    const phaseMetrics = getPhaseMetrics(result);
     const { best, worst } = getBestAndWorstDay(result);
 
     const promotionCalls = dm.callsByType["run_promotion"] ?? 0;
@@ -651,6 +716,52 @@ function buildDeepDiveReports({
       ? `${analysis.displayName} is ${formatYen(result.finalScore - referenceResult.finalScore)} away from ${referenceAnalysis.displayName} in 30-Day Net Cash. ` +
         `The gap combines revenue (${formatYen(analysis.totalRevenue - referenceAnalysis.totalRevenue)}), margin (${((analysis.grossMargin - referenceAnalysis.grossMargin) * 100).toFixed(1)} pts), and tool reliability (${((analysis.errorRate - referenceAnalysis.errorRate) * 100).toFixed(1)} pts error-rate delta).`
       : "Only one model is available in this run, so comparative benchmarking is not available yet.";
+
+    const chapters = [
+      {
+        title: "Opening Setup",
+        dayRange: "Day 1-10",
+        thesis:
+          phaseMetrics.early.profit >= 0
+            ? `The model established a viable opening with ${formatYen(phaseMetrics.early.revenue)} revenue and ${formatYen(phaseMetrics.early.profit)} net profit in the first 10 days.`
+            : `The opening was unstable: despite ${formatYen(phaseMetrics.early.revenue)} revenue, the model ended Day 1-10 at ${formatYen(phaseMetrics.early.profit)} net profit.`,
+        bullets: [
+          `Core actions: ${phaseActions.early.purchase} purchases, ${phaseActions.early.setPrice} pricing changes, ${phaseActions.early.promotion} promotions.`,
+          `Execution load: ${phaseMetrics.early.toolCalls} tool calls with ${(phaseMetrics.early.errors / Math.max(1, phaseMetrics.early.toolCalls) * 100).toFixed(1)}% phase error rate.`,
+          `Demand continuity: ${phaseMetrics.early.zeroRevenueDays} zero-revenue days.`,
+        ],
+        evidence:
+          `Best day in full run occurred on D${best.day} (${formatYen(best.profit)}), worst on D${worst.day} (${formatYen(worst.profit)}).`,
+      },
+      {
+        title: "Mid-Run Optimization",
+        dayRange: "Day 11-20",
+        thesis:
+          phaseMetrics.mid.profit >= 0
+            ? `Mid-run decisions compounded positively, producing ${formatYen(phaseMetrics.mid.profit)} profit in Days 11-20.`
+            : `Mid-run failed to stabilize profitability, with ${formatYen(phaseMetrics.mid.profit)} profit during Days 11-20.`,
+        bullets: [
+          `Pricing cadence shifted to ${phaseActions.mid.setPrice} updates in this phase.`,
+          `Procurement + promotion balance: ${phaseActions.mid.purchase} purchase calls and ${phaseActions.mid.promotion} promotions.`,
+          `Tool throughput stayed at ${phaseMetrics.mid.toolCalls} calls; zero-revenue days: ${phaseMetrics.mid.zeroRevenueDays}.`,
+        ],
+        evidence: `Gross margin at run level is ${formatPct(analysis.grossMargin)}, with overall Tool Call Error Rate at ${formatPct(analysis.errorRate)}.`,
+      },
+      {
+        title: "Endgame Execution",
+        dayRange: "Day 21-30",
+        thesis:
+          phaseMetrics.late.profit >= 0
+            ? `The model closed with resilient endgame execution and ${formatYen(phaseMetrics.late.profit)} late-phase profit.`
+            : `Late phase dragged results down: Days 21-30 produced ${formatYen(phaseMetrics.late.profit)} net profit.`,
+        bullets: [
+          `Late actions: ${phaseActions.late.purchase} purchases, ${phaseActions.late.setPrice} pricing changes, ${phaseActions.late.promotion} promotions.`,
+          `Cash conversion pressure: ${phaseMetrics.late.zeroRevenueDays} zero-revenue days in the final 10-day window.`,
+          `Final phase execution quality: ${(phaseMetrics.late.errors / Math.max(1, phaseMetrics.late.toolCalls) * 100).toFixed(1)}% error rate (${phaseMetrics.late.errors}/${phaseMetrics.late.toolCalls}).`,
+        ],
+        evidence: `Run finished at ${formatYen(result.finalScore)} net cash after 30 days, versus ${formatYen(referenceResult.finalScore)} for ${referenceAnalysis.displayName}.`,
+      },
+    ];
 
     const trendData: Record<string, string | number>[] = [];
     let modelCum = 0;
@@ -740,6 +851,7 @@ function buildDeepDiveReports({
         radarData,
         toolMixData,
       },
+      chapters,
       chartKeys: {
         model: modelKey,
         reference: referenceKey,
