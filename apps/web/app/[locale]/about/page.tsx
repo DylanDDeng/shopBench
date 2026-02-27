@@ -1,12 +1,14 @@
 import { notFound } from "next/navigation";
 import { isLocale } from "@/lib/i18n";
 
-export default function LocalizedAboutPage({ params }: { params: { locale: string } }) {
-  if (!isLocale(params.locale)) {
+export default async function LocalizedAboutPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+
+  if (!isLocale(locale)) {
     notFound();
   }
 
-  const isZh = params.locale === "zh";
+  const isZh = locale === "zh";
   const text = isZh
     ? {
         title: "关于 ShopBench",

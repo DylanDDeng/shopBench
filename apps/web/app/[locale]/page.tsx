@@ -3,12 +3,12 @@ import { getAllResults, computeDerivedMetrics, formatYen, getModelDisplayName } 
 import { Leaderboard } from "@/components/Leaderboard";
 import { isLocale } from "@/lib/i18n";
 
-export default function LocaleHomePage({ params }: { params: { locale: string } }) {
-  if (!isLocale(params.locale)) {
+export default async function LocaleHomePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+
+  if (!isLocale(locale)) {
     notFound();
   }
-
-  const locale = params.locale;
   const isZh = locale === "zh";
   const text = isZh
     ? {
