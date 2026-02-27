@@ -10,6 +10,31 @@ interface LeaderboardProps {
   derivedMetrics: DerivedMetrics[];
 }
 
+interface MetricInfoProps {
+  label: string;
+  help: string;
+}
+
+function MetricInfo({ label, help }: MetricInfoProps) {
+  return (
+    <span className="metric-info-label">
+      <span>{label}</span>
+      <span className="metric-info-wrap">
+        <button
+          type="button"
+          className="metric-info-btn"
+          aria-label={`${label} definition`}
+        >
+          i
+        </button>
+        <span className="metric-info-tooltip" role="tooltip">
+          {help}
+        </span>
+      </span>
+    </span>
+  );
+}
+
 function getRankBadge(rank: number) {
   if (rank === 0) return <span className="badge badge-gold">1st</span>;
   if (rank === 1) return <span className="badge badge-silver">2nd</span>;
@@ -100,10 +125,30 @@ export function Leaderboard({ results, derivedMetrics }: LeaderboardProps) {
           <tr>
             <th style={{ width: 60 }}>Rank</th>
             <th className="model-col">Model</th>
-            <th className="text-right">30-Day Net Cash (¥)</th>
-            <th className="text-right">Gross Margin</th>
-            <th className="text-right">Tool Call Error Rate</th>
-            <th>30-Day Profit</th>
+            <th className="text-center">
+              <MetricInfo
+                label="30-Day Net Cash (¥)"
+                help="Final cash minus starting cash minus outstanding loans; this is the ranking metric."
+              />
+            </th>
+            <th className="text-center">
+              <MetricInfo
+                label="Gross Margin"
+                help="(Revenue - COGS) / Revenue for sold items."
+              />
+            </th>
+            <th className="text-center">
+              <MetricInfo
+                label="Tool Call Error Rate"
+                help="Percentage of tool calls that returned an error."
+              />
+            </th>
+            <th>
+              <MetricInfo
+                label="30-Day Profit"
+                help="Cumulative trend of daily net profit across the 30-day run."
+              />
+            </th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -124,11 +169,11 @@ export function Leaderboard({ results, derivedMetrics }: LeaderboardProps) {
                 <td className="model-cell">
                   <ModelNameMarquee name={r.model} />
                 </td>
-                <td className={`text-right ${r.finalScore >= 0 ? "profit-positive" : "profit-negative"}`}>
+                <td className={`text-center ${r.finalScore >= 0 ? "profit-positive" : "profit-negative"}`}>
                   {formatYen(r.finalScore)}
                 </td>
-                <td className="text-right">{formatPct(dm.grossMargin)}</td>
-                <td className="text-right">{formatPct(dm.errorRate)}</td>
+                <td className="text-center">{formatPct(dm.grossMargin)}</td>
+                <td className="text-center">{formatPct(dm.errorRate)}</td>
                 <td className="sparkline-cell">
                   <SparklineCell
                     data={profitCurve}

@@ -438,6 +438,10 @@ thead tr:hover {
   text-align: right;
 }
 
+.text-center {
+  text-align: center;
+}
+
 /* ─── Tab Bar ─── */
 
 .tab-bar {
@@ -1731,6 +1735,94 @@ thead tr:hover {
   min-width: 860px;
 }
 
+.metric-info-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18rem;
+  white-space: nowrap;
+}
+
+.text-right .metric-info-label {
+  justify-content: flex-end;
+}
+
+.metric-info-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.metric-info-btn {
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+  padding: 0;
+}
+
+.metric-info-btn:hover,
+.metric-info-btn:focus-visible {
+  color: #64748b;
+  border-color: #94a3b8;
+  background: #f8fafc;
+  outline: none;
+}
+
+.metric-info-tooltip {
+  position: absolute;
+  top: calc(100% + 0.38rem);
+  left: 50%;
+  transform: translateX(-50%) translateY(-1px);
+  min-width: 180px;
+  max-width: 240px;
+  background: #ffffff;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.42rem 0.52rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  z-index: 20;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.14s ease, transform 0.14s ease, visibility 0.14s ease;
+}
+
+.metric-info-tooltip::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  background: #ffffff;
+  border-left: 1px solid #cbd5e1;
+  border-top: 1px solid #cbd5e1;
+  rotate: 45deg;
+}
+
+.metric-info-wrap:hover .metric-info-tooltip,
+.metric-info-wrap:focus-within .metric-info-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
 .model-col {
   min-width: 240px;
   width: 28%;
@@ -1880,6 +1972,22 @@ thead tr:hover {
 
   .leaderboard-highlights {
     grid-template-columns: 1fr;
+  }
+
+  .metric-info-tooltip {
+    left: 0;
+    transform: translateX(0) translateY(-2px);
+    max-width: min(230px, 75vw);
+  }
+
+  .metric-info-tooltip::before {
+    left: 0.6rem;
+    transform: none;
+  }
+
+  .metric-info-wrap:hover .metric-info-tooltip,
+  .metric-info-wrap:focus-within .metric-info-tooltip {
+    transform: translateX(0) translateY(0);
   }
 
   .highlight-card {
