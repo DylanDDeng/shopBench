@@ -1151,11 +1151,55 @@ thead tr:hover {
 }
 
 .leaderboard-table table {
-  min-width: 900px;
+  min-width: 860px;
+}
+
+.model-col {
+  min-width: 240px;
+  width: 28%;
+}
+
+.model-cell {
+  max-width: 0;
+}
+
+.model-marquee {
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.model-marquee span {
+  display: inline-block;
+  font-weight: 700;
+  color: var(--text-primary);
+  transform: translateX(0);
+  will-change: transform;
+}
+
+.model-marquee.is-overflow:hover span,
+.model-marquee.is-overflow:focus-within span {
+  animation: model-marquee-scroll var(--marquee-duration, 6s) linear infinite alternate;
+}
+
+@keyframes model-marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-1 * var(--marquee-distance, 0px))); }
+}
+
+.leaderboard-actions {
+  white-space: nowrap;
 }
 
 .sparkline-cell {
   width: 120px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .model-marquee.is-overflow:hover span,
+  .model-marquee.is-overflow:focus-within span {
+    animation: none;
+  }
 }
 
 /* ─── Responsive Breakpoints ─── */
