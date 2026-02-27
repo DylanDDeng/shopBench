@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { CHART_THEME } from "@/lib/chartConfig";
 import { formatYen } from "@/lib/types";
+import type { Locale } from "@/lib/i18n";
 
 interface ScatterDataPoint {
   displayName: string;
@@ -27,17 +28,27 @@ interface ScatterDataPoint {
 interface ScatterChartProps {
   data: ScatterDataPoint[];
   height?: number;
+  locale?: Locale;
 }
 
-function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: ScatterDataPoint }> }) {
+function CustomTooltip({
+  active,
+  payload,
+  locale = "en",
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: ScatterDataPoint }>;
+  locale?: Locale;
+}) {
   if (!active || !payload?.[0]) return null;
+  const isZh = locale === "zh";
   const d = payload[0].payload;
   return (
     <div style={CHART_THEME.tooltip.contentStyle}>
       <div style={{ fontWeight: 600, marginBottom: 4 }}>{d.displayName}</div>
-      <div>Price Changes: {d.setPriceCalls}</div>
-      <div>Net Profit: {formatYen(d.netProfit)}</div>
-      <div>Revenue: {formatYen(d.totalRevenue)}</div>
+      <div>{isZh ? "调价次数" : "Price Changes"}: {d.setPriceCalls}</div>
+      <div>{isZh ? "净利润" : "Net Profit"}: {formatYen(d.netProfit)}</div>
+      <div>{isZh ? "收入" : "Revenue"}: {formatYen(d.totalRevenue)}</div>
     </div>
   );
 }
@@ -51,7 +62,8 @@ function CustomLabel({ viewBox, value }: { viewBox?: { x: number; y: number }; v
   );
 }
 
-export function PriceVsProfitScatter({ data, height = 400 }: ScatterChartProps) {
+export function PriceVsProfitScatter({ data, height = 400, locale = "en" }: ScatterChartProps) {
+  const isZh = locale === "zh";
   const revenueRange = [
     Math.min(...data.map(d => d.totalRevenue)),
     Math.max(...data.map(d => d.totalRevenue)),
@@ -64,28 +76,28 @@ export function PriceVsProfitScatter({ data, height = 400 }: ScatterChartProps) 
         <XAxis
           type="number"
           dataKey="setPriceCalls"
-          name="Price Changes"
+          name={isZh ? "调价次数" : "Price Changes"}
           {...CHART_THEME.axis}
         >
-          <Label value="Price Changes (set_price calls)" position="bottom" offset={0} fill="#64748b" fontSize={12} />
+          <Label value={isZh ? "调价次数（set_price 调用）" : "Price Changes (set_price calls)"} position="bottom" offset={0} fill="#64748b" fontSize={12} />
         </XAxis>
         <YAxis
           type="number"
           dataKey="netProfit"
-          name="Net Profit"
+          name={isZh ? "净利润" : "Net Profit"}
           tickFormatter={v => `¥${(v / 1000).toFixed(0)}k`}
           {...CHART_THEME.axis}
         >
-          <Label value="Net Profit (¥)" position="left" angle={-90} offset={10} fill="#64748b" fontSize={12} />
+          <Label value={isZh ? "净利润 (¥)" : "Net Profit (¥)"} position="left" angle={-90} offset={10} fill="#64748b" fontSize={12} />
         </YAxis>
         <ZAxis
           type="number"
           dataKey="totalRevenue"
           range={[200, 1200]}
           domain={revenueRange}
-          name="Revenue"
+          name={isZh ? "收入" : "Revenue"}
         />
-        <Tooltip content={<CustomTooltip />} />
+        <Tooltip content={<CustomTooltip locale={locale} />} />
         <ReferenceLine y={0} {...CHART_THEME.referenceLine} />
         <Scatter data={data} isAnimationActive={false}>
           {data.map((entry, i) => (

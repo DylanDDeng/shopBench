@@ -5,6 +5,7 @@ import { GroupedBarChart } from "@/components/GroupedBarChart";
 import { RadarCompare } from "@/components/RadarCompare";
 import { TrendLineChart } from "@/components/TrendLineChart";
 import { formatPct, formatYen } from "@/lib/types";
+import type { Locale } from "@/lib/i18n";
 
 interface DeepDiveSnapshot {
   netCash: number;
@@ -68,11 +69,13 @@ export interface DeepDiveReport {
 
 interface DeepDiveReportsProps {
   reports: DeepDiveReport[];
+  locale?: Locale;
 }
 
 type EvidenceTab = "trajectory" | "radar" | "toolmix";
 
-export function DeepDiveReports({ reports }: DeepDiveReportsProps) {
+export function DeepDiveReports({ reports, locale = "en" }: DeepDiveReportsProps) {
+  const isZh = locale === "zh";
   const [selectedModel, setSelectedModel] = useState(reports[0]?.modelId ?? "");
   const [evidenceTab, setEvidenceTab] = useState<EvidenceTab>("trajectory");
 
@@ -87,27 +90,27 @@ export function DeepDiveReports({ reports }: DeepDiveReportsProps) {
 
   const deltaRows = [
     {
-      label: "Net Cash Gap",
+      label: isZh ? "净现金差距" : "Net Cash Gap",
       value: report.comparison.netCashDiff,
       display: formatYen(report.comparison.netCashDiff),
       betterWhenLower: false,
     },
     {
-      label: "Revenue Gap",
+      label: isZh ? "收入差距" : "Revenue Gap",
       value: report.comparison.revenueDiff,
       display: formatYen(report.comparison.revenueDiff),
       betterWhenLower: false,
     },
     {
-      label: "Gross Margin Gap",
+      label: isZh ? "毛利率差距" : "Gross Margin Gap",
       value: report.comparison.marginDiff,
-      display: `${(report.comparison.marginDiff * 100).toFixed(1)} pts`,
+      display: `${(report.comparison.marginDiff * 100).toFixed(1)}${isZh ? " 点" : " pts"}`,
       betterWhenLower: false,
     },
     {
-      label: "Error Rate Gap",
+      label: isZh ? "错误率差距" : "Error Rate Gap",
       value: report.comparison.errorRateDiff,
-      display: `${(report.comparison.errorRateDiff * 100).toFixed(1)} pts`,
+      display: `${(report.comparison.errorRateDiff * 100).toFixed(1)}${isZh ? " 点" : " pts"}`,
       betterWhenLower: true,
     },
   ];
@@ -117,13 +120,13 @@ export function DeepDiveReports({ reports }: DeepDiveReportsProps) {
     <div className="deep-dive-shell">
       <div className="card deep-dive-toolbar">
         <div>
-          <div className="deep-dive-toolbar-title">Research Report Mode</div>
+          <div className="deep-dive-toolbar-title">{isZh ? "研究报告模式" : "Research Report Mode"}</div>
           <div className="deep-dive-toolbar-subtitle">
-            Structured narrative + evidence charts + benchmark deltas.
+            {isZh ? "结构化叙事 + 证据图表 + 基准差值对比。" : "Structured narrative + evidence charts + benchmark deltas."}
           </div>
         </div>
         <label className="deep-dive-select-wrap">
-          <span>Model</span>
+          <span>{isZh ? "模型" : "Model"}</span>
           <select
             className="deep-dive-select"
             value={report.modelId}
@@ -144,7 +147,7 @@ export function DeepDiveReports({ reports }: DeepDiveReportsProps) {
             <p className="deep-dive-kicker">{report.comparison.relationLabel}</p>
             <h3>{report.displayName}</h3>
             <p className="deep-dive-meta">
-              Rank #{report.rank} · Style: {report.strategyTitle}
+              {isZh ? `排名 #${report.rank} · 风格：${report.strategyTitle}` : `Rank #${report.rank} · Style: ${report.strategyTitle}`}
             </p>
             <p className="deep-dive-thesis-text">{report.executiveSummary}</p>
             <p className="deep-dive-thesis-text">{report.operatingStyle}</p>
@@ -152,15 +155,15 @@ export function DeepDiveReports({ reports }: DeepDiveReportsProps) {
 
           <div className="deep-dive-kpi-triad">
             <div className="deep-dive-kpi-pill">
-              <span>30-Day Net Cash</span>
+              <span>{isZh ? "30天净现金" : "30-Day Net Cash"}</span>
               <strong>{formatYen(report.snapshot.netCash)}</strong>
             </div>
             <div className="deep-dive-kpi-pill">
-              <span>Gross Margin</span>
+              <span>{isZh ? "毛利率" : "Gross Margin"}</span>
               <strong>{formatPct(report.snapshot.grossMargin)}</strong>
             </div>
             <div className="deep-dive-kpi-pill">
-              <span>Tool Call Error Rate</span>
+              <span>{isZh ? "工具调用错误率" : "Tool Call Error Rate"}</span>
               <strong>{formatPct(report.snapshot.toolErrorRate)}</strong>
             </div>
           </div>
@@ -186,28 +189,28 @@ export function DeepDiveReports({ reports }: DeepDiveReportsProps) {
 
         <section className="card-flat deep-dive-evidence">
           <div className="deep-dive-evidence-head">
-            <h3>Evidence Board</h3>
+            <h3>{isZh ? "证据看板" : "Evidence Board"}</h3>
             <div className="deep-dive-tabs">
               <button
                 type="button"
                 className={`deep-dive-tab ${evidenceTab === "trajectory" ? "active" : ""}`}
                 onClick={() => setEvidenceTab("trajectory")}
               >
-                Net Cash Trajectory
+                {isZh ? "净现金轨迹" : "Net Cash Trajectory"}
               </button>
               <button
                 type="button"
                 className={`deep-dive-tab ${evidenceTab === "radar" ? "active" : ""}`}
                 onClick={() => setEvidenceTab("radar")}
               >
-                Capability Radar
+                {isZh ? "能力雷达" : "Capability Radar"}
               </button>
               <button
                 type="button"
                 className={`deep-dive-tab ${evidenceTab === "toolmix" ? "active" : ""}`}
                 onClick={() => setEvidenceTab("toolmix")}
               >
-                Tool Mix
+                {isZh ? "工具结构" : "Tool Mix"}
               </button>
             </div>
           </div>
@@ -260,7 +263,7 @@ export function DeepDiveReports({ reports }: DeepDiveReportsProps) {
         </section>
 
         <section className="card-flat deep-dive-deltas">
-          <h3>Delta vs {report.comparison.referenceName}</h3>
+          <h3>{isZh ? `相对 ${report.comparison.referenceName} 的差值` : `Delta vs ${report.comparison.referenceName}`}</h3>
           <p className="deep-dive-paragraph">{report.comparisonNarrative}</p>
 
           <div className="deep-dive-delta-rows">
@@ -288,7 +291,7 @@ export function DeepDiveReports({ reports }: DeepDiveReportsProps) {
 
         <div className="deep-dive-insight-columns">
           <section className="card-flat">
-            <h3>What Worked</h3>
+            <h3>{isZh ? "有效做法" : "What Worked"}</h3>
             <ul className="deep-dive-list">
               {[...report.strengths, ...report.successReasons].slice(0, 6).map((item, idx) => (
                 <li key={idx}>{item}</li>
@@ -296,7 +299,7 @@ export function DeepDiveReports({ reports }: DeepDiveReportsProps) {
             </ul>
           </section>
           <section className="card-flat">
-            <h3>What Limited Performance</h3>
+            <h3>{isZh ? "性能瓶颈" : "What Limited Performance"}</h3>
             <ul className="deep-dive-list">
               {[...report.weaknesses, ...report.failureReasons].slice(0, 6).map((item, idx) => (
                 <li key={idx}>{item}</li>

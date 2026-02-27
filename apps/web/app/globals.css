@@ -119,6 +119,7 @@ a:hover {
   z-index: 100;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-lg);
   padding: 0.75rem var(--space-xl);
   background: rgba(255, 255, 255, 0.9);
@@ -126,6 +127,13 @@ a:hover {
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-primary);
   box-shadow: var(--shadow-sm);
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  min-width: 0;
 }
 
 .nav-brand {
@@ -152,6 +160,51 @@ a:hover {
   color: var(--text-primary);
   border-bottom: 2px solid var(--accent-blue);
   font-weight: 600;
+}
+
+.nav-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.lang-btn {
+  border: 1px solid var(--border-secondary);
+  border-radius: 999px;
+  padding: 0.22rem 0.6rem !important;
+  line-height: 1.2;
+  font-size: 0.8125rem !important;
+  color: var(--text-secondary) !important;
+  background: #ffffff;
+}
+
+.lang-btn:hover {
+  border-color: var(--accent-blue);
+  color: var(--text-primary) !important;
+}
+
+.nav .lang-btn.active {
+  border-bottom: 1px solid var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue) !important;
+}
+
+@media (max-width: 900px) {
+  .nav {
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+  }
+
+  .nav-left {
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+  }
+
+  .nav-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 
 /* ─── Card System ─── */

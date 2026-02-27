@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import type { Locale } from "@/lib/i18n";
 
 interface CaseStudyProps {
   icon: string;
@@ -7,14 +8,16 @@ interface CaseStudyProps {
   narrative: string;
   stats: { label: string; value: string }[];
   accentColor?: string;
+  locale?: Locale;
 }
 
-export function CaseStudyCard({ icon, title, model, narrative, stats, accentColor }: CaseStudyProps) {
+export function CaseStudyCard({ icon, title, model, narrative, stats, accentColor, locale = "en" }: CaseStudyProps) {
+  const isZh = locale === "zh";
   const cardStyle = { "--case-accent": accentColor ?? "#f59e0b" } as CSSProperties;
 
   return (
     <div className="case-study" style={cardStyle}>
-      <div className="case-study-kicker">Failure Pattern</div>
+      <div className="case-study-kicker">{isZh ? "失败模式" : "Failure Pattern"}</div>
       <div className="case-study-header">
         <span className="case-study-icon">{icon}</span>
         <div>

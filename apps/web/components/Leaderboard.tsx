@@ -3,19 +3,72 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { SimulationResult, DerivedMetrics } from "@/lib/types";
 import { formatYen, formatPct } from "@/lib/types";
+import type { Locale } from "@/lib/i18n";
 import { SparklineCell } from "./SparklineCell";
 
 interface LeaderboardProps {
   results: SimulationResult[];
   derivedMetrics: DerivedMetrics[];
+  locale?: Locale;
 }
 
 interface MetricInfoProps {
   label: string;
   help: string;
+  locale: Locale;
 }
 
-function MetricInfo({ label, help }: MetricInfoProps) {
+const LEADERBOARD_TEXT: Record<Locale, {
+  rank: string;
+  model: string;
+  netCash: string;
+  netCashHelp: string;
+  grossMargin: string;
+  grossMarginHelp: string;
+  errorRate: string;
+  errorRateHelp: string;
+  profit: string;
+  profitHelp: string;
+  actions: string;
+  view: string;
+  report: string;
+  replay: string;
+}> = {
+  en: {
+    rank: "Rank",
+    model: "Model",
+    netCash: "30-Day Net Cash (¥)",
+    netCashHelp: "Final cash minus starting cash minus outstanding loans; this is the ranking metric.",
+    grossMargin: "Gross Margin",
+    grossMarginHelp: "(Revenue - COGS) / Revenue for sold items.",
+    errorRate: "Tool Call Error Rate",
+    errorRateHelp: "Percentage of tool calls that returned an error.",
+    profit: "30-Day Profit",
+    profitHelp: "Cumulative trend of daily net profit across the 30-day run.",
+    actions: "Actions",
+    view: "View",
+    report: "Report",
+    replay: "Replay",
+  },
+  zh: {
+    rank: "排名",
+    model: "模型",
+    netCash: "30天净现金 (¥)",
+    netCashHelp: "期末现金减去初始现金和未偿贷款；该指标用于最终排名。",
+    grossMargin: "毛利率",
+    grossMarginHelp: "已售商品的 (收入 - 成本) / 收入。",
+    errorRate: "工具调用错误率",
+    errorRateHelp: "所有工具调用中返回错误的比例。",
+    profit: "30天利润趋势",
+    profitHelp: "30天累计日净利润的变化曲线。",
+    actions: "操作",
+    view: "查看",
+    report: "报告",
+    replay: "回放",
+  },
+};
+
+function MetricInfo({ label, help, locale }: MetricInfoProps) {
   return (
     <span className="metric-info-label">
       <span>{label}</span>
@@ -23,7 +76,7 @@ function MetricInfo({ label, help }: MetricInfoProps) {
         <button
           type="button"
           className="metric-info-btn"
-          aria-label={`${label} definition`}
+          aria-label={locale === "zh" ? `${label} 指标说明` : `${label} definition`}
         >
           i
         </button>
@@ -35,7 +88,12 @@ function MetricInfo({ label, help }: MetricInfoProps) {
   );
 }
 
-function getRankBadge(rank: number) {
+function getRankBadge(rank: number, locale: Locale) {
+  if (locale === "zh") {
+    if (rank === 0) return <span className="badge badge-gold">1名</span>;
+    if (rank === 1) return <span className="badge badge-silver">2名</span>;
+    if (rank === 2) return <span className="badge badge-bronze">3名</span>;
+  }
   if (rank === 0) return <span className="badge badge-gold">1st</span>;
   if (rank === 1) return <span className="badge badge-silver">2nd</span>;
   if (rank === 2) return <span className="badge badge-bronze">3rd</span>;
@@ -96,44 +154,51 @@ function ModelNameMarquee({ name }: { name: string }) {
   );
 }
 
-export function Leaderboard({ results, derivedMetrics }: LeaderboardProps) {
+export function Leaderboard({ results, derivedMetrics, locale = "en" }: LeaderboardProps) {
+  const text = LEADERBOARD_TEXT[locale];
+
   return (
     <div className="card leaderboard-table">
       <table>
         <thead>
           <tr>
-            <th style={{ width: 60 }}>Rank</th>
-            <th className="model-col">Model</th>
+            <th style={{ width: 60 }}>{text.rank}</th>
+            <th className="model-col">{text.model}</th>
             <th className="text-center">
               <MetricInfo
-                label="30-Day Net Cash (¥)"
-                help="Final cash minus starting cash minus outstanding loans; this is the ranking metric."
+                label={text.netCash}
+                help={text.netCashHelp}
+                locale={locale}
               />
             </th>
             <th className="text-center">
               <MetricInfo
-                label="Gross Margin"
-                help="(Revenue - COGS) / Revenue for sold items."
+                label={text.grossMargin}
+                help={text.grossMarginHelp}
+                locale={locale}
               />
             </th>
             <th className="text-center">
               <MetricInfo
-                label="Tool Call Error Rate"
-                help="Percentage of tool calls that returned an error."
+                label={text.errorRate}
+                help={text.errorRateHelp}
+                locale={locale}
               />
             </th>
             <th>
               <MetricInfo
-                label="30-Day Profit"
-                help="Cumulative trend of daily net profit across the 30-day run."
+                label={text.profit}
+                help={text.profitHelp}
+                locale={locale}
               />
             </th>
-            <th className="text-center">Actions</th>
+            <th className="text-center">{text.actions}</th>
           </tr>
         </thead>
         <tbody>
           {results.map((r, i) => {
             const dm = derivedMetrics[i];
+            const shortModelName = r.model.split("/").pop() ?? r.model;
             // Cumulative profit for sparkline
             let cum = 0;
             const profitCurve = r.metrics.dailyProfitTrend.map(p => {
@@ -144,9 +209,9 @@ export function Leaderboard({ results, derivedMetrics }: LeaderboardProps) {
 
             return (
               <tr key={r.id}>
-                <td>{getRankBadge(i)}</td>
+                <td>{getRankBadge(i, locale)}</td>
                 <td className="model-cell">
-                  <ModelNameMarquee name={r.model} />
+                  <ModelNameMarquee name={shortModelName} />
                 </td>
                 <td className={`text-center ${r.finalScore >= 0 ? "profit-positive" : "profit-negative"}`}>
                   {formatYen(r.finalScore)}
@@ -164,12 +229,12 @@ export function Leaderboard({ results, derivedMetrics }: LeaderboardProps) {
                 <td className="leaderboard-actions text-center">
                   <details className="action-menu">
                     <summary className="action-menu-trigger">
-                      View
+                      {text.view}
                       <span className="action-menu-caret" aria-hidden>▾</span>
                     </summary>
                     <div className="action-menu-list">
-                      <a href={`/report/${r.id}`} className="action-menu-item">Report</a>
-                      <a href={`/replay/${r.id}`} className="action-menu-item">Replay</a>
+                      <a href={`/report/${r.id}`} className="action-menu-item">{text.report}</a>
+                      <a href={`/replay/${r.id}`} className="action-menu-item">{text.replay}</a>
                     </div>
                   </details>
                 </td>

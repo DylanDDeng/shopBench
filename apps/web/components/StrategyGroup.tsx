@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties } from "react";
 import { formatYen } from "@/lib/types";
+import type { Locale } from "@/lib/i18n";
 
 interface StrategyModelData {
   displayName: string;
@@ -20,6 +21,7 @@ interface StrategyGroupProps {
   summary: string;
   avgNetProfit: number;
   defaultOpen?: boolean;
+  locale?: Locale;
 }
 
 export function StrategyGroup({
@@ -30,7 +32,9 @@ export function StrategyGroup({
   summary,
   avgNetProfit,
   defaultOpen = false,
+  locale = "en",
 }: StrategyGroupProps) {
+  const isZh = locale === "zh";
   const [open, setOpen] = useState(defaultOpen);
   const previewModels = models.map(m => m.displayName).join(", ");
   const rootStyle = { "--strategy-accent": color } as CSSProperties;
@@ -42,13 +46,13 @@ export function StrategyGroup({
           <div className="strategy-title-row">
             <span className="strategy-emoji">{emoji}</span>
             <span className="strategy-name">{title}</span>
-            <span className="strategy-count">{models.length} models</span>
+            <span className="strategy-count">{models.length}{isZh ? " 个模型" : " models"}</span>
           </div>
           <span className="strategy-models-preview">{previewModels}</span>
         </div>
         <div className="strategy-header-right">
           <span className={`strategy-avg-chip ${avgNetProfit >= 0 ? "positive" : "negative"}`}>
-            Avg Net Cash {formatYen(avgNetProfit)}
+            {isZh ? "平均净现金" : "Avg Net Cash"} {formatYen(avgNetProfit)}
           </span>
           <span className="strategy-chevron">{open ? "▴" : "▾"}</span>
         </div>
@@ -59,12 +63,12 @@ export function StrategyGroup({
         <table className="strategy-table">
           <thead>
             <tr>
-              <th>Model</th>
-              <th className="text-right">Net Profit</th>
-              <th className="text-right">Price Changes</th>
-              <th className="text-right">Purchases</th>
-              <th className="text-right">Revenue</th>
-              <th className="text-right">Zero-Rev Days</th>
+              <th>{isZh ? "模型" : "Model"}</th>
+              <th className="text-right">{isZh ? "净利润" : "Net Profit"}</th>
+              <th className="text-right">{isZh ? "调价次数" : "Price Changes"}</th>
+              <th className="text-right">{isZh ? "采购次数" : "Purchases"}</th>
+              <th className="text-right">{isZh ? "收入" : "Revenue"}</th>
+              <th className="text-right">{isZh ? "零收入天数" : "Zero-Rev Days"}</th>
             </tr>
           </thead>
           <tbody>

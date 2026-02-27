@@ -7,6 +7,7 @@ import { TrendLineChart } from "@/components/TrendLineChart";
 import { GroupedBarChart } from "@/components/GroupedBarChart";
 import { SectionHeader } from "@/components/SectionHeader";
 import { formatYen, formatPct } from "@/lib/types";
+import type { Locale } from "@/lib/i18n";
 
 interface Model {
   name: string;
@@ -14,6 +15,7 @@ interface Model {
 }
 
 interface CompareContentProps {
+  locale?: Locale;
   models: Model[];
   radarData: Record<string, unknown>[];
   summaryTable: {
@@ -37,6 +39,7 @@ interface CompareContentProps {
 }
 
 export function CompareContent({
+  locale = "en",
   models,
   radarData,
   summaryTable,
@@ -84,16 +87,99 @@ export function CompareContent({
   const overviewSummaryRows = radarMode === "pair"
     ? summaryTable.filter(row => row.name === modelA || row.name === modelB)
     : summaryTable;
+  const text = locale === "zh"
+    ? {
+        overview: "总览",
+        financial: "财务",
+        purchasing: "采购",
+        inventory: "库存",
+        tools: "工具使用",
+        endgame: "收官阶段",
+        multiComparison: "多维能力对比",
+        allModels: "全部模型",
+        pickTwoModels: "选择2个模型",
+        modelA: "模型 A",
+        modelB: "模型 B",
+        scoreSummary: "核心指标汇总",
+        model: "模型",
+        score: "分数",
+        cash: "现金",
+        revenue: "收入",
+        margin: "毛利率",
+        satisfaction: "满意度",
+        cumulativeProfit: "累计利润趋势",
+        dailyCash: "每日现金余额",
+        spendingByPhase: "分阶段支出",
+        purchasingSummary: "采购汇总",
+        orders: "总调用",
+        failures: "失败次数",
+        errorRate: "错误率",
+        toolCalls: "工具调用",
+        inventoryValue: "库存价值趋势",
+        inventorySummary: "库存汇总",
+        clearanceRate: "清仓率",
+        endInventoryValue: "期末库存价值",
+        toolCallsPerDay: "每日工具调用",
+        toolUsageBreakdown: "工具类型分布",
+        lastFiveDaysStrategy: "最后5天策略",
+        endgameSummary: "收官汇总",
+        purchasesLastFiveDays: "采购 (近5天)",
+        promotionsLastFiveDays: "促销 (近5天)",
+        endInventory: "期末库存",
+        purchases: "采购",
+        promotions: "促销",
+      }
+    : {
+        overview: "Overview",
+        financial: "Financial",
+        purchasing: "Purchasing",
+        inventory: "Inventory",
+        tools: "Tool Usage",
+        endgame: "End-game",
+        multiComparison: "Multi-Dimensional Comparison",
+        allModels: "All Models",
+        pickTwoModels: "Pick 2 Models",
+        modelA: "Model A",
+        modelB: "Model B",
+        scoreSummary: "Score Summary",
+        model: "Model",
+        score: "Score",
+        cash: "Cash",
+        revenue: "Revenue",
+        margin: "Margin",
+        satisfaction: "Satisfaction",
+        cumulativeProfit: "Cumulative Profit Over Time",
+        dailyCash: "Daily Cash Balance",
+        spendingByPhase: "Spending by Phase",
+        purchasingSummary: "Purchasing Summary",
+        orders: "Orders",
+        failures: "Failures",
+        errorRate: "Error Rate",
+        toolCalls: "Tool Calls",
+        inventoryValue: "Inventory Value Over Time",
+        inventorySummary: "Inventory Summary",
+        clearanceRate: "Clearance Rate",
+        endInventoryValue: "End Inventory Value",
+        toolCallsPerDay: "Tool Calls Per Day",
+        toolUsageBreakdown: "Tool Usage Breakdown",
+        lastFiveDaysStrategy: "Last 5 Days Strategy",
+        endgameSummary: "End-game Summary",
+        purchasesLastFiveDays: "Purchases (Last 5d)",
+        promotionsLastFiveDays: "Promotions (Last 5d)",
+        endInventory: "End Inventory",
+        purchases: "Purchases",
+        promotions: "Promotions",
+      };
 
   const tabs = [
     {
       id: "overview",
-      label: "Overview",
+      label: text.overview,
       content: (
         <div>
           <div className="grid-2">
             <div className="card">
-              <h3>Multi-Dimensional Comparison</h3>
+              <h3>{text.multiComparison}</h3>
               <div className="compare-radar-controls">
                 <div className="compare-radar-mode">
                   <button
@@ -101,7 +187,7 @@ export function CompareContent({
                     className={`compare-mode-btn ${radarMode === "all" ? "active" : ""}`}
                     onClick={() => setRadarMode("all")}
                   >
-                    All Models
+                    {text.allModels}
                   </button>
                   <button
                     type="button"
@@ -109,13 +195,13 @@ export function CompareContent({
                     onClick={() => setRadarMode("pair")}
                     disabled={models.length < 2}
                   >
-                    Pick 2 Models
+                    {text.pickTwoModels}
                   </button>
                 </div>
                 {radarMode === "pair" && models.length > 1 && (
                   <div className="compare-model-picks">
                     <label className="compare-pick-label">
-                      Model A
+                      {text.modelA}
                       <select
                         className="compare-pick-select"
                         value={modelA}
@@ -127,7 +213,7 @@ export function CompareContent({
                       </select>
                     </label>
                     <label className="compare-pick-label">
-                      Model B
+                      {text.modelB}
                       <select
                         className="compare-pick-select"
                         value={modelB}
@@ -144,16 +230,16 @@ export function CompareContent({
               <RadarCompare data={overviewRadarData} axisKey="metric" series={overviewSeries} />
             </div>
             <div className="card">
-              <h3>Score Summary</h3>
+              <h3>{text.scoreSummary}</h3>
               <table>
                 <thead>
                   <tr>
-                    <th>Model</th>
-                    <th className="text-right">Score</th>
-                    <th className="text-right">Cash</th>
-                    <th className="text-right">Revenue</th>
-                    <th className="text-right">Margin</th>
-                    <th className="text-right">Satisfaction</th>
+                    <th>{text.model}</th>
+                    <th className="text-right">{text.score}</th>
+                    <th className="text-right">{text.cash}</th>
+                    <th className="text-right">{text.revenue}</th>
+                    <th className="text-right">{text.margin}</th>
+                    <th className="text-right">{text.satisfaction}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -178,11 +264,11 @@ export function CompareContent({
     },
     {
       id: "financial",
-      label: "Financial",
+      label: text.financial,
       content: (
         <div>
           <div className="card">
-            <h3>Cumulative Profit Over Time</h3>
+            <h3>{text.cumulativeProfit}</h3>
             <TrendLineChart
               data={cumulativeProfitData}
               xKey="day"
@@ -192,7 +278,7 @@ export function CompareContent({
             />
           </div>
           <div className="card">
-            <h3>Daily Cash Balance</h3>
+            <h3>{text.dailyCash}</h3>
             <TrendLineChart
               data={dailyCashData}
               xKey="day"
@@ -205,11 +291,11 @@ export function CompareContent({
     },
     {
       id: "purchasing",
-      label: "Purchasing",
+      label: text.purchasing,
       content: (
         <div>
           <div className="card">
-            <h3>Spending by Phase</h3>
+            <h3>{text.spendingByPhase}</h3>
             <GroupedBarChart
               data={purchasingData}
               xKey="phase"
@@ -218,15 +304,15 @@ export function CompareContent({
             />
           </div>
           <div className="card">
-            <h3>Purchasing Summary</h3>
+            <h3>{text.purchasingSummary}</h3>
             <table>
               <thead>
                 <tr>
-                  <th>Model</th>
-                  <th className="text-right">Orders</th>
-                  <th className="text-right">Failures</th>
-                  <th className="text-right">Error Rate</th>
-                  <th className="text-right">Tool Calls</th>
+                  <th>{text.model}</th>
+                  <th className="text-right">{text.orders}</th>
+                  <th className="text-right">{text.failures}</th>
+                  <th className="text-right">{text.errorRate}</th>
+                  <th className="text-right">{text.toolCalls}</th>
                 </tr>
               </thead>
               <tbody>
@@ -247,11 +333,11 @@ export function CompareContent({
     },
     {
       id: "inventory",
-      label: "Inventory",
+      label: text.inventory,
       content: (
         <div>
           <div className="card">
-            <h3>Inventory Value Over Time</h3>
+            <h3>{text.inventoryValue}</h3>
             <TrendLineChart
               data={inventoryValueData}
               xKey="day"
@@ -260,13 +346,13 @@ export function CompareContent({
             />
           </div>
           <div className="card">
-            <h3>Inventory Summary</h3>
+            <h3>{text.inventorySummary}</h3>
             <table>
               <thead>
                 <tr>
-                  <th>Model</th>
-                  <th className="text-right">Clearance Rate</th>
-                  <th className="text-right">End Inventory Value</th>
+                  <th>{text.model}</th>
+                  <th className="text-right">{text.clearanceRate}</th>
+                  <th className="text-right">{text.endInventoryValue}</th>
                 </tr>
               </thead>
               <tbody>
@@ -285,11 +371,11 @@ export function CompareContent({
     },
     {
       id: "tools",
-      label: "Tool Usage",
+      label: text.tools,
       content: (
         <div>
           <div className="card">
-            <h3>Tool Calls Per Day</h3>
+            <h3>{text.toolCallsPerDay}</h3>
             <TrendLineChart
               data={toolCallsPerDay}
               xKey="day"
@@ -298,7 +384,7 @@ export function CompareContent({
             />
           </div>
           <div className="card">
-            <h3>Tool Usage Breakdown</h3>
+            <h3>{text.toolUsageBreakdown}</h3>
             <GroupedBarChart
               data={toolBreakdownData}
               xKey="tool"
@@ -312,31 +398,31 @@ export function CompareContent({
     },
     {
       id: "endgame",
-      label: "End-game",
+      label: text.endgame,
       content: (
         <div>
           <div className="card">
-            <h3>Last 5 Days Strategy</h3>
+            <h3>{text.lastFiveDaysStrategy}</h3>
             <GroupedBarChart
               data={endGameData}
               xKey="model"
               series={[
-                { key: "purchases", name: "Purchases", color: "#60a5fa" },
-                { key: "promotions", name: "Promotions", color: "#10b981" },
+                { key: "purchases", name: text.purchases, color: "#60a5fa" },
+                { key: "promotions", name: text.promotions, color: "#10b981" },
               ]}
               height={300}
             />
           </div>
           <div className="card">
-            <h3>End-game Summary</h3>
+            <h3>{text.endgameSummary}</h3>
             <table>
               <thead>
                 <tr>
-                  <th>Model</th>
-                  <th className="text-right">Purchases (Last 5d)</th>
-                  <th className="text-right">Promotions (Last 5d)</th>
-                  <th className="text-right">Clearance Rate</th>
-                  <th className="text-right">End Inventory</th>
+                  <th>{text.model}</th>
+                  <th className="text-right">{text.purchasesLastFiveDays}</th>
+                  <th className="text-right">{text.promotionsLastFiveDays}</th>
+                  <th className="text-right">{text.clearanceRate}</th>
+                  <th className="text-right">{text.endInventory}</th>
                 </tr>
               </thead>
               <tbody>

@@ -13,6 +13,7 @@ import { CaseStudyCard } from "@/components/CaseStudyCard";
 import { InsightsContent } from "./InsightsContent";
 import { DeepDiveReports, type DeepDiveReport } from "./DeepDiveReports";
 import type { DerivedMetrics, SimulationResult } from "@/lib/types";
+import type { Locale } from "@/lib/i18n";
 
 /* ─── Per-model analysis data ─── */
 
@@ -53,6 +54,14 @@ const STRATEGY_META: Record<StrategyType, { color: string; emoji: string; title:
   conservative: { color: "#f59e0b", emoji: "\u{1F7E1}", title: "Conservative Observers" },
   "over-analyzer": { color: "#f97316", emoji: "\u{1F7E0}", title: "Over-Analyzers" },
   passive: { color: "#ef4444", emoji: "\u{1F534}", title: "Passive Strugglers" },
+};
+
+const STRATEGY_META_ZH: Record<StrategyType, { color: string; emoji: string; title: string }> = {
+  aggressive: { color: "#10b981", emoji: "\u{1F7E2}", title: "激进增长型" },
+  balanced: { color: "#60a5fa", emoji: "\u{1F535}", title: "均衡运营型" },
+  conservative: { color: "#f59e0b", emoji: "\u{1F7E1}", title: "保守观察型" },
+  "over-analyzer": { color: "#f97316", emoji: "\u{1F7E0}", title: "过度分析型" },
+  passive: { color: "#ef4444", emoji: "\u{1F534}", title: "被动失速型" },
 };
 
 function classifyStrategy(m: ModelAnalysis): StrategyType {
@@ -105,17 +114,33 @@ const STRATEGY_SUMMARIES: Record<StrategyType, string> = {
     "Models that struggle with the fundamental mechanics of store management. Low purchase rates, minimal pricing, and high zero-revenue days indicate a failure to maintain basic store operations.",
 };
 
+const STRATEGY_SUMMARIES_ZH: Record<StrategyType, string> = {
+  aggressive:
+    "这类模型高频调价、积极补货并配合促销，把价格当作日常优化杠杆。30 天内会进行 50-100+ 次调价，通常能带来更高收入与更稳定利润。",
+  balanced:
+    "这类模型采用中等频率调价与稳定运营节奏，在竞争性和执行成本之间取得平衡。采购和促销动作相对克制且有规律。",
+  conservative:
+    "这类模型调价极少，倾向依赖默认策略和最小化干预，容易错过动态定价带来的收益机会。采购频率较低但执行较规整。",
+  "over-analyzer":
+    "典型“分析瘫痪”模式：大量调用信息工具而缺少执行动作。信息/行动比过高（>3:1）会导致研究很多、行动很少，最终出现缺货和收入停滞。",
+  passive:
+    "这类模型在门店经营基本机制上表现薄弱。采购不足、定价动作稀少、零收入天数偏多，说明基础运营无法稳定维持。",
+};
+
 /* ─── Page component ─── */
 
-export default function InsightsPage() {
+export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
+  const isZh = locale === "zh";
+  const strategyMeta = isZh ? STRATEGY_META_ZH : STRATEGY_META;
+  const strategySummaries = isZh ? STRATEGY_SUMMARIES_ZH : STRATEGY_SUMMARIES;
   const results = getAllResults();
 
   if (results.length === 0) {
     return (
       <div className="container">
         <div className="page-header">
-          <h1>Strategy Insights</h1>
-          <p>No simulation results available. Run benchmarks first to see insights.</p>
+          <h1>{isZh ? "策略洞察" : "Strategy Insights"}</h1>
+          <p>{isZh ? "暂无可分析结果，请先运行 benchmark。" : "No simulation results available. Run benchmarks first to see insights."}</p>
         </div>
       </div>
     );
@@ -186,12 +211,12 @@ export default function InsightsPage() {
     .map(type => {
       const models = groupMap.get(type)!;
       const avgNetProfit = models.reduce((s, m) => s + m.netProfit, 0) / models.length;
-      const meta = STRATEGY_META[type];
+      const meta = strategyMeta[type];
       return {
         type,
         ...meta,
         models,
-        summary: STRATEGY_SUMMARIES[type],
+        summary: strategySummaries[type],
         avgNetProfit,
       };
     });
@@ -231,81 +256,97 @@ export default function InsightsPage() {
     {
       icon: "\u{1F4CA}",
       value: formatPct(profitableRate),
-      label: "Profitability Rate",
-      description: `Only ${profitableCount} of ${analyses.length} models achieved positive profit over 30 days`,
+      label: isZh ? "盈利模型占比" : "Profitability Rate",
+      description: isZh
+        ? `${analyses.length} 个模型中仅有 ${profitableCount} 个在 30 天内实现正利润`
+        : `Only ${profitableCount} of ${analyses.length} models achieved positive profit over 30 days`,
     },
     {
       icon: "\u{1F4C8}",
       value: `r = ${priceR.toFixed(2)}`,
-      label: "Price Changes \u{2194} Profit",
-      description: "Strong correlation between pricing frequency and net profit across all models",
+      label: isZh ? "调价频率 \u{2194} 利润" : "Price Changes \u{2194} Profit",
+      description: isZh
+        ? "跨模型看，调价频率与净利润呈显著正相关"
+        : "Strong correlation between pricing frequency and net profit across all models",
     },
     {
       icon: "\u{26A0}\u{FE0F}",
       value: formatYen(highestRevModel.totalRevenue),
-      label: "Revenue \u{2260} Profit",
-      description: `${highestRevModel.displayName} had highest revenue but ${highestRevModel.displayName === highestProfitModel.displayName ? "also topped profit" : `${highestProfitModel.displayName} was more profitable`}`,
+      label: isZh ? "收入 \u{2260} 利润" : "Revenue \u{2260} Profit",
+      description: isZh
+        ? `${highestRevModel.displayName} 收入最高，但${highestRevModel.displayName === highestProfitModel.displayName ? "也同时是利润最高" : `${highestProfitModel.displayName} 的利润更高`}`
+        : `${highestRevModel.displayName} had highest revenue but ${highestRevModel.displayName === highestProfitModel.displayName ? "also topped profit" : `${highestProfitModel.displayName} was more profitable`}`,
     },
     {
       icon: "\u{2696}\u{FE0F}",
       value: `${avgInfoRatioProfitable.toFixed(1)}:1`,
-      label: "Optimal Info/Action Ratio",
-      description: "Average info-to-action ratio among profitable models \u{2014} too high means analysis paralysis",
+      label: isZh ? "最优 信息/行动 比" : "Optimal Info/Action Ratio",
+      description: isZh
+        ? "盈利模型的平均信息/行动比；过高通常意味着“分析瘫痪”"
+        : "Average info-to-action ratio among profitable models \u{2014} too high means analysis paralysis",
     },
     {
       icon: "\u{1F9E0}",
       value: `#1 vs #${sortedByProfit.length}`,
-      label: "Size \u{2260} Performance",
-      description: `${bestModel.displayName} outperformed ${worstModel.displayName} \u{2014} bigger models aren't always better`,
+      label: isZh ? "参数规模 \u{2260} 表现" : "Size \u{2260} Performance",
+      description: isZh
+        ? `${bestModel.displayName} 明显优于 ${worstModel.displayName}，更大的模型不一定更好`
+        : `${bestModel.displayName} outperformed ${worstModel.displayName} \u{2014} bigger models aren't always better`,
     },
   ];
   const strongestGroup = [...strategyGroups].sort((a, b) => b.avgNetProfit - a.avgNetProfit)[0];
   const largestGroup = [...strategyGroups].sort((a, b) => b.models.length - a.models.length)[0];
 
   // Case studies — find specific patterns in the data
-  const caseStudies = buildCaseStudies(analyses, results);
+  const caseStudies = buildCaseStudies(analyses, results, locale);
   const deepDiveReports = buildDeepDiveReports({
     results,
     analyses,
     derivedMetrics,
     strategyByModel,
+    locale,
+    strategyMeta,
+    strategySummaries,
   });
 
   return (
     <div className="container">
       <div className="page-header">
-        <h1>Strategy Insights</h1>
+        <h1>{isZh ? "策略洞察" : "Strategy Insights"}</h1>
         <p>
-          Cross-model analysis of pricing strategies, operational patterns, and failure modes from {analyses.length} AI models
+          {isZh
+            ? `基于 ${analyses.length} 个 AI 模型，对定价策略、运营模式与失败机制进行跨模型分析`
+            : `Cross-model analysis of pricing strategies, operational patterns, and failure modes from ${analyses.length} AI models`}
         </p>
       </div>
 
       <section className="insights-intro card-flat">
-        <div className="insights-intro-kicker">Insights Brief</div>
-        <h2 className="insights-intro-title">What separates winning model operators from struggling ones</h2>
+        <div className="insights-intro-kicker">{isZh ? "洞察摘要" : "Insights Brief"}</div>
+        <h2 className="insights-intro-title">{isZh ? "胜出模型与落后模型的关键差异" : "What separates winning model operators from struggling ones"}</h2>
         <p className="insights-intro-copy">
-          Top performers combine frequent price adjustments with disciplined purchasing and low tool-call failure. Low performers
-          either under-act on pricing or spend too much on analysis without execution.
+          {isZh
+            ? "头部模型通常具备高频调价、纪律化采购和较低工具错误率。落后模型往往要么调价动作不足，要么分析过多而执行不足。"
+            : "Top performers combine frequent price adjustments with disciplined purchasing and low tool-call failure. Low performers either under-act on pricing or spend too much on analysis without execution."}
         </p>
         <div className="insights-intro-pills">
           <div className="insights-intro-pill">
-            <span>Profitable Models</span>
+            <span>{isZh ? "盈利模型数" : "Profitable Models"}</span>
             <strong>{profitableCount} / {analyses.length}</strong>
           </div>
           <div className="insights-intro-pill">
-            <span>Best Correlation Signal</span>
-            <strong>Pricing ↔ Net Cash (r={priceR.toFixed(2)})</strong>
+            <span>{isZh ? "最强相关信号" : "Best Correlation Signal"}</span>
+            <strong>{isZh ? `调价 ↔ 净现金 (r=${priceR.toFixed(2)})` : `Pricing ↔ Net Cash (r=${priceR.toFixed(2)})`}</strong>
           </div>
           {strongestGroup ? (
             <div className="insights-intro-pill">
-              <span>Strongest Strategy Cluster</span>
+              <span>{isZh ? "最强策略簇" : "Strongest Strategy Cluster"}</span>
               <strong>{strongestGroup.title}</strong>
             </div>
           ) : null}
           {largestGroup ? (
             <div className="insights-intro-pill">
-              <span>Largest Strategy Cluster</span>
-              <strong>{largestGroup.title} ({largestGroup.models.length})</strong>
+              <span>{isZh ? "最大策略簇" : "Largest Strategy Cluster"}</span>
+              <strong>{largestGroup.title} ({largestGroup.models.length}{isZh ? " 个模型" : ""})</strong>
             </div>
           ) : null}
         </div>
@@ -313,8 +354,8 @@ export default function InsightsPage() {
 
       <section className="insights-block">
         <div className="insights-block-head">
-          <h2>Key Findings</h2>
-          <span className="insights-block-subtitle">across {analyses.length} models</span>
+          <h2>{isZh ? "关键发现" : "Key Findings"}</h2>
+          <span className="insights-block-subtitle">{isZh ? `覆盖 ${analyses.length} 个模型` : `across ${analyses.length} models`}</span>
         </div>
         <div className="insight-grid insight-grid-premium">
           {insights.map((ins, i) => (
@@ -324,6 +365,7 @@ export default function InsightsPage() {
       </section>
 
       <InsightsContent
+        locale={locale}
         scatterData={scatterData}
         strategyGroups={strategyGroups.map(g => ({
           type: g.type,
@@ -345,18 +387,21 @@ export default function InsightsPage() {
 
       <section className="insights-block">
         <div className="insights-block-head">
-          <h2>Failure Case Studies</h2>
-          <span className="insights-block-subtitle">patterns to avoid</span>
+          <h2>{isZh ? "失败案例拆解" : "Failure Case Studies"}</h2>
+          <span className="insights-block-subtitle">{isZh ? "应避免的模式" : "patterns to avoid"}</span>
         </div>
         <div className="case-study-grid">
           {caseStudies.map((cs, i) => (
-            <CaseStudyCard key={i} {...cs} />
+            <CaseStudyCard key={i} {...cs} locale={locale} />
           ))}
         </div>
       </section>
 
-      <SectionHeader title="Model Deep Dive Reports" subtitle="long-form per model analysis with chart evidence" />
-      <DeepDiveReports reports={deepDiveReports} />
+      <SectionHeader
+        title={isZh ? "模型深度报告" : "Model Deep Dive Reports"}
+        subtitle={isZh ? "按模型输出长篇分析与图表证据" : "long-form per model analysis with chart evidence"}
+      />
+      <DeepDiveReports reports={deepDiveReports} locale={locale} />
     </div>
   );
 }
@@ -366,7 +411,9 @@ export default function InsightsPage() {
 function buildCaseStudies(
   analyses: ModelAnalysis[],
   results: SimulationResult[],
+  locale: Locale,
 ) {
+  const isZh = locale === "zh";
   const cases: {
     icon: string;
     title: string;
@@ -398,14 +445,16 @@ function buildCaseStudies(
 
     cases.push({
       icon: "\u{1F9CA}",
-      title: "Analysis Paralysis",
+      title: isZh ? "分析瘫痪" : "Analysis Paralysis",
       model: overAnalyzer.displayName,
-      narrative: `Spent the majority of tool calls on information gathering rather than action. With an info-to-action ratio of ${overAnalyzer.infoActionRatio.toFixed(1)}:1, this model researched endlessly while the store ran out of stock. ${maxConsecutiveZero > 0 ? `Had ${maxConsecutiveZero} consecutive zero-revenue days.` : ""}`,
+      narrative: isZh
+        ? `该模型把大量工具调用用于信息收集而非行动。信息/行动比达到 ${overAnalyzer.infoActionRatio.toFixed(1)}:1，研究很多但执行不足，最终出现缺货。${maxConsecutiveZero > 0 ? `连续 ${maxConsecutiveZero} 天零收入。` : ""}`
+        : `Spent the majority of tool calls on information gathering rather than action. With an info-to-action ratio of ${overAnalyzer.infoActionRatio.toFixed(1)}:1, this model researched endlessly while the store ran out of stock. ${maxConsecutiveZero > 0 ? `Had ${maxConsecutiveZero} consecutive zero-revenue days.` : ""}`,
       stats: [
-        { label: "estimate_order calls", value: `${overAnalyzer.estimateOrderCalls}` },
-        { label: "purchase_goods calls", value: `${overAnalyzer.purchaseCalls}` },
-        { label: "Info/Action Ratio", value: `${overAnalyzer.infoActionRatio.toFixed(1)}:1` },
-        { label: "Net Profit", value: formatYen(overAnalyzer.netProfit) },
+        { label: isZh ? "estimate_order 调用" : "estimate_order calls", value: `${overAnalyzer.estimateOrderCalls}` },
+        { label: isZh ? "purchase_goods 调用" : "purchase_goods calls", value: `${overAnalyzer.purchaseCalls}` },
+        { label: isZh ? "信息/行动比" : "Info/Action Ratio", value: `${overAnalyzer.infoActionRatio.toFixed(1)}:1` },
+        { label: isZh ? "净利润" : "Net Profit", value: formatYen(overAnalyzer.netProfit) },
       ],
       accentColor: "#f97316",
     });
@@ -425,14 +474,16 @@ function buildCaseStudies(
   if (lateCollapser) {
     cases.push({
       icon: "\u{1F4C9}",
-      title: "Late-Game Collapse",
+      title: isZh ? "后程崩盘" : "Late-Game Collapse",
       model: lateCollapser.displayName,
-      narrative: `Revenue collapsed in the final 5 days. Average daily revenue dropped from ${formatYen(lateCollapser.earlyAvg)} (Day 1-25) to ${formatYen(lateCollapser.lateAvg)} (Day 26-30), a ${((1 - lateCollapser.dropRatio) * 100).toFixed(0)}% decline suggesting inventory exhaustion or failed clearance.`,
+      narrative: isZh
+        ? `最后 5 天收入明显崩塌：日均收入从 ${formatYen(lateCollapser.earlyAvg)}（Day 1-25）降至 ${formatYen(lateCollapser.lateAvg)}（Day 26-30），下降 ${((1 - lateCollapser.dropRatio) * 100).toFixed(0)}%，可能与缺货或清仓失败有关。`
+        : `Revenue collapsed in the final 5 days. Average daily revenue dropped from ${formatYen(lateCollapser.earlyAvg)} (Day 1-25) to ${formatYen(lateCollapser.lateAvg)} (Day 26-30), a ${((1 - lateCollapser.dropRatio) * 100).toFixed(0)}% decline suggesting inventory exhaustion or failed clearance.`,
       stats: [
-        { label: "Early Avg Revenue/Day", value: formatYen(lateCollapser.earlyAvg) },
-        { label: "Late Avg Revenue/Day", value: formatYen(lateCollapser.lateAvg) },
-        { label: "Price Changes", value: `${lateCollapser.setPriceCalls}` },
-        { label: "Net Profit", value: formatYen(lateCollapser.netProfit) },
+        { label: isZh ? "前期日均收入" : "Early Avg Revenue/Day", value: formatYen(lateCollapser.earlyAvg) },
+        { label: isZh ? "后期日均收入" : "Late Avg Revenue/Day", value: formatYen(lateCollapser.lateAvg) },
+        { label: isZh ? "调价次数" : "Price Changes", value: `${lateCollapser.setPriceCalls}` },
+        { label: isZh ? "净利润" : "Net Profit", value: formatYen(lateCollapser.netProfit) },
       ],
       accentColor: "#ef4444",
     });
@@ -445,14 +496,16 @@ function buildCaseStudies(
   if (lazyPricer) {
     cases.push({
       icon: "\u{1F634}",
-      title: "The Non-Adjuster",
+      title: isZh ? "不调价者" : "The Non-Adjuster",
       model: lazyPricer.displayName,
-      narrative: `Made only ${lazyPricer.setPriceCalls} price changes across 30 days. While diligently performing other tasks (${lazyPricer.totalToolCalls} total tool calls), this model never learned that dynamic pricing is the key lever for profitability.`,
+      narrative: isZh
+        ? `30 天内仅进行了 ${lazyPricer.setPriceCalls} 次调价。尽管执行了其他任务（总计 ${lazyPricer.totalToolCalls} 次工具调用），但未利用“动态定价”这一关键利润杠杆。`
+        : `Made only ${lazyPricer.setPriceCalls} price changes across 30 days. While diligently performing other tasks (${lazyPricer.totalToolCalls} total tool calls), this model never learned that dynamic pricing is the key lever for profitability.`,
       stats: [
-        { label: "Price Changes", value: `${lazyPricer.setPriceCalls}` },
-        { label: "Total Tool Calls", value: `${lazyPricer.totalToolCalls}` },
-        { label: "Zero-Revenue Days", value: `${lazyPricer.zeroRevenueDays}` },
-        { label: "Net Profit", value: formatYen(lazyPricer.netProfit) },
+        { label: isZh ? "调价次数" : "Price Changes", value: `${lazyPricer.setPriceCalls}` },
+        { label: isZh ? "总工具调用" : "Total Tool Calls", value: `${lazyPricer.totalToolCalls}` },
+        { label: isZh ? "零收入天数" : "Zero-Revenue Days", value: `${lazyPricer.zeroRevenueDays}` },
+        { label: isZh ? "净利润" : "Net Profit", value: formatYen(lazyPricer.netProfit) },
       ],
       accentColor: "#f59e0b",
     });
@@ -463,13 +516,15 @@ function buildCaseStudies(
     const worst = [...analyses].sort((a, b) => a.netProfit - b.netProfit)[0];
     cases.push({
       icon: "\u{26A0}\u{FE0F}",
-      title: "Lowest Performer",
+      title: isZh ? "最低表现模型" : "Lowest Performer",
       model: worst.displayName,
-      narrative: `The lowest-performing model with ${formatYen(worst.netProfit)} net profit. With ${worst.setPriceCalls} price changes and ${worst.zeroRevenueDays} zero-revenue days, fundamental operational gaps prevented profitability.`,
+      narrative: isZh
+        ? `该模型净利润为 ${formatYen(worst.netProfit)}，表现垫底。调价仅 ${worst.setPriceCalls} 次且有 ${worst.zeroRevenueDays} 天零收入，基础运营缺口导致无法盈利。`
+        : `The lowest-performing model with ${formatYen(worst.netProfit)} net profit. With ${worst.setPriceCalls} price changes and ${worst.zeroRevenueDays} zero-revenue days, fundamental operational gaps prevented profitability.`,
       stats: [
-        { label: "Net Profit", value: formatYen(worst.netProfit) },
-        { label: "Price Changes", value: `${worst.setPriceCalls}` },
-        { label: "Zero-Revenue Days", value: `${worst.zeroRevenueDays}` },
+        { label: isZh ? "净利润" : "Net Profit", value: formatYen(worst.netProfit) },
+        { label: isZh ? "调价次数" : "Price Changes", value: `${worst.setPriceCalls}` },
+        { label: isZh ? "零收入天数" : "Zero-Revenue Days", value: `${worst.zeroRevenueDays}` },
       ],
       accentColor: "#ef4444",
     });
@@ -488,6 +543,14 @@ const CATEGORY_LABELS: Record<CategoryKey, string> = {
   personnel: "Personnel",
   finance: "Finance",
   strategy: "Strategy",
+};
+
+const CATEGORY_LABELS_ZH: Record<CategoryKey, string> = {
+  info: "信息类",
+  operation: "运营类",
+  personnel: "人力类",
+  finance: "财务类",
+  strategy: "策略类",
 };
 
 function median(values: number[]): number {
@@ -524,13 +587,14 @@ function getCallsByCategory(dm: DerivedMetrics): Record<CategoryKey, number> {
   return counts;
 }
 
-function topToolsText(dm: DerivedMetrics): string {
+function topToolsText(dm: DerivedMetrics, locale: Locale): string {
+  const isZh = locale === "zh";
   const topTools = Object.entries(dm.callsByType)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
     .map(([name, count]) => `${getToolLabel(name)} (${count})`);
 
-  return topTools.length > 0 ? topTools.join(", ") : "No significant tool usage recorded";
+  return topTools.length > 0 ? topTools.join(", ") : (isZh ? "未记录到显著工具使用" : "No significant tool usage recorded");
 }
 
 function getPhaseActionCounts(result: SimulationResult) {
@@ -602,12 +666,20 @@ function buildDeepDiveReports({
   analyses,
   derivedMetrics,
   strategyByModel,
+  locale,
+  strategyMeta,
+  strategySummaries,
 }: {
   results: SimulationResult[];
   analyses: ModelAnalysis[];
   derivedMetrics: DerivedMetrics[];
   strategyByModel: Map<string, StrategyType>;
+  locale: Locale;
+  strategyMeta: Record<StrategyType, { color: string; emoji: string; title: string }>;
+  strategySummaries: Record<StrategyType, string>;
 }): DeepDiveReport[] {
+  const isZh = locale === "zh";
+  const categoryLabels = isZh ? CATEGORY_LABELS_ZH : CATEGORY_LABELS;
   const scoreValues = results.map(r => r.finalScore);
   const revenueValues = analyses.map(a => a.totalRevenue);
   const marginValues = analyses.map(a => a.grossMargin);
@@ -637,8 +709,8 @@ function buildDeepDiveReports({
     const result = results[idx];
     const dm = derivedMetrics[idx];
     const strategyType = strategyByModel.get(analysis.model) ?? "balanced";
-    const strategyTitle = STRATEGY_META[strategyType].title;
-    const strategyNarrative = STRATEGY_SUMMARIES[strategyType];
+    const strategyTitle = strategyMeta[strategyType].title;
+    const strategyNarrative = strategySummaries[strategyType];
 
     const referenceIdx = idx === 0 ? Math.min(1, analyses.length - 1) : 0;
     const referenceAnalysis = analyses[referenceIdx];
@@ -664,102 +736,147 @@ function buildDeepDiveReports({
     const hiringCalls = dm.callsByType["hire_employee"] ?? 0;
     const loanCalls = (dm.callsByType["take_loan"] ?? 0) + (dm.callsByType["repay_loan"] ?? 0);
 
-    const executiveSummary =
-      `${analysis.displayName} finished rank #${idx + 1} with ${formatYen(result.finalScore)} in 30-Day Net Cash. ` +
-      `It generated ${formatYen(analysis.totalRevenue)} total revenue at ${formatPct(analysis.grossMargin)} gross margin, ` +
-      `while executing ${analysis.totalToolCalls} tool calls with a ${formatPct(analysis.errorRate)} tool call error rate.`;
+    const executiveSummary = isZh
+      ? `${analysis.displayName} 在 30 天净现金指标中排名第 #${idx + 1}，最终为 ${formatYen(result.finalScore)}。总收入 ${formatYen(analysis.totalRevenue)}，毛利率 ${formatPct(analysis.grossMargin)}，共执行 ${analysis.totalToolCalls} 次工具调用，错误率 ${formatPct(analysis.errorRate)}。`
+      : `${analysis.displayName} finished rank #${idx + 1} with ${formatYen(result.finalScore)} in 30-Day Net Cash. It generated ${formatYen(analysis.totalRevenue)} total revenue at ${formatPct(analysis.grossMargin)} gross margin, while executing ${analysis.totalToolCalls} tool calls with a ${formatPct(analysis.errorRate)} tool call error rate.`;
 
-    const operatingStyle =
-      `Operating style: ${strategyTitle}. ${strategyNarrative} ` +
-      `In this run, ${analysis.displayName} allocated ${formatPct(infoShare)} of calls to information gathering ` +
-      `and ${formatPct(actionShare)} to execution actions, with ${analysis.setPriceCalls} pricing updates and ${analysis.purchaseCalls} purchase attempts.`;
+    const operatingStyle = isZh
+      ? `运营风格：${strategyTitle}。${strategyNarrative} 本次运行中，${analysis.displayName} 将 ${formatPct(infoShare)} 的调用用于信息收集，${formatPct(actionShare)} 用于执行动作；共调价 ${analysis.setPriceCalls} 次，发起采购 ${analysis.purchaseCalls} 次。`
+      : `Operating style: ${strategyTitle}. ${strategyNarrative} In this run, ${analysis.displayName} allocated ${formatPct(infoShare)} of calls to information gathering and ${formatPct(actionShare)} to execution actions, with ${analysis.setPriceCalls} pricing updates and ${analysis.purchaseCalls} purchase attempts.`;
 
     const actionHighlights = [
-      `Most-used tools: ${topToolsText(dm)}.`,
-      `Action mix: ${analysis.setPriceCalls} set_price, ${analysis.purchaseCalls} purchase_goods, ${promotionCalls} run_promotion, ${hiringCalls} hire_employee, ${loanCalls} finance calls.`,
-      `Pacing by phase (early/mid/late): set_price ${phaseActions.early.setPrice}/${phaseActions.mid.setPrice}/${phaseActions.late.setPrice}, purchases ${phaseActions.early.purchase}/${phaseActions.mid.purchase}/${phaseActions.late.purchase}, promotions ${phaseActions.early.promotion}/${phaseActions.mid.promotion}/${phaseActions.late.promotion}.`,
-      `Operational stability: ${analysis.profitableDays} profitable days, ${analysis.zeroRevenueDays} zero-revenue days, best day D${best.day} (${formatYen(best.profit)}), worst day D${worst.day} (${formatYen(worst.profit)}).`,
+      isZh
+        ? `高频工具：${topToolsText(dm, locale)}。`
+        : `Most-used tools: ${topToolsText(dm, locale)}.`,
+      isZh
+        ? `行动结构：set_price ${analysis.setPriceCalls} 次，purchase_goods ${analysis.purchaseCalls} 次，run_promotion ${promotionCalls} 次，hire_employee ${hiringCalls} 次，财务类 ${loanCalls} 次。`
+        : `Action mix: ${analysis.setPriceCalls} set_price, ${analysis.purchaseCalls} purchase_goods, ${promotionCalls} run_promotion, ${hiringCalls} hire_employee, ${loanCalls} finance calls.`,
+      isZh
+        ? `阶段节奏（前/中/后）：set_price ${phaseActions.early.setPrice}/${phaseActions.mid.setPrice}/${phaseActions.late.setPrice}，采购 ${phaseActions.early.purchase}/${phaseActions.mid.purchase}/${phaseActions.late.purchase}，促销 ${phaseActions.early.promotion}/${phaseActions.mid.promotion}/${phaseActions.late.promotion}。`
+        : `Pacing by phase (early/mid/late): set_price ${phaseActions.early.setPrice}/${phaseActions.mid.setPrice}/${phaseActions.late.setPrice}, purchases ${phaseActions.early.purchase}/${phaseActions.mid.purchase}/${phaseActions.late.purchase}, promotions ${phaseActions.early.promotion}/${phaseActions.mid.promotion}/${phaseActions.late.promotion}.`,
+      isZh
+        ? `运营稳定性：盈利天数 ${analysis.profitableDays}，零收入天数 ${analysis.zeroRevenueDays}；最佳日 D${best.day}（${formatYen(best.profit)}），最差日 D${worst.day}（${formatYen(worst.profit)}）。`
+        : `Operational stability: ${analysis.profitableDays} profitable days, ${analysis.zeroRevenueDays} zero-revenue days, best day D${best.day} (${formatYen(best.profit)}), worst day D${worst.day} (${formatYen(worst.profit)}).`,
     ];
 
     const strengths: string[] = [];
-    if (result.finalScore > 0) strengths.push(`Finished with positive 30-Day Net Cash (${formatYen(result.finalScore)}), indicating successful cash conversion.`);
-    if (analysis.grossMargin >= medianMargin) strengths.push(`Gross margin (${formatPct(analysis.grossMargin)}) is above or near cohort median (${formatPct(medianMargin)}).`);
-    if (analysis.errorRate <= medianErrorRate) strengths.push(`Tool execution reliability is solid with ${formatPct(analysis.errorRate)} error rate (median: ${formatPct(medianErrorRate)}).`);
-    if (analysis.zeroRevenueDays <= medianZeroRevenueDays) strengths.push(`Maintained fewer zero-revenue days (${analysis.zeroRevenueDays}) than typical peers.`);
-    if (analysis.setPriceCalls >= medianPricing) strengths.push(`Used pricing as an active lever (${analysis.setPriceCalls} set_price calls, median: ${medianPricing.toFixed(0)}).`);
-    if (strengths.length === 0) strengths.push("No dominant advantage surfaced; performance came from moderate execution across multiple dimensions.");
+    if (result.finalScore > 0) strengths.push(isZh ? `30 天净现金为正（${formatYen(result.finalScore)}），说明现金转化有效。` : `Finished with positive 30-Day Net Cash (${formatYen(result.finalScore)}), indicating successful cash conversion.`);
+    if (analysis.grossMargin >= medianMargin) strengths.push(isZh ? `毛利率（${formatPct(analysis.grossMargin)}）高于或接近样本中位数（${formatPct(medianMargin)}）。` : `Gross margin (${formatPct(analysis.grossMargin)}) is above or near cohort median (${formatPct(medianMargin)}).`);
+    if (analysis.errorRate <= medianErrorRate) strengths.push(isZh ? `工具执行可靠性较好，错误率 ${formatPct(analysis.errorRate)}（中位数：${formatPct(medianErrorRate)}）。` : `Tool execution reliability is solid with ${formatPct(analysis.errorRate)} error rate (median: ${formatPct(medianErrorRate)}).`);
+    if (analysis.zeroRevenueDays <= medianZeroRevenueDays) strengths.push(isZh ? `零收入天数（${analysis.zeroRevenueDays}）低于典型同行。` : `Maintained fewer zero-revenue days (${analysis.zeroRevenueDays}) than typical peers.`);
+    if (analysis.setPriceCalls >= medianPricing) strengths.push(isZh ? `将定价作为主动杠杆（set_price ${analysis.setPriceCalls} 次，中位数 ${medianPricing.toFixed(0)}）。` : `Used pricing as an active lever (${analysis.setPriceCalls} set_price calls, median: ${medianPricing.toFixed(0)}).`);
+    if (strengths.length === 0) strengths.push(isZh ? "未出现明显单点优势，表现主要来自多维度的中等稳定执行。" : "No dominant advantage surfaced; performance came from moderate execution across multiple dimensions.");
 
     const weaknesses: string[] = [];
-    if (result.finalScore <= 0) weaknesses.push(`Ended below break-even with ${formatYen(result.finalScore)} 30-Day Net Cash.`);
-    if (analysis.errorRate > medianErrorRate) weaknesses.push(`Tool Call Error Rate (${formatPct(analysis.errorRate)}) is above median (${formatPct(medianErrorRate)}), causing execution leakage.`);
-    if (analysis.zeroRevenueDays > medianZeroRevenueDays) weaknesses.push(`High zero-revenue exposure (${analysis.zeroRevenueDays} days) indicates stockout or demand conversion issues.`);
-    if (analysis.setPriceCalls < medianPricing) weaknesses.push(`Pricing cadence is below median (${analysis.setPriceCalls} vs ${medianPricing.toFixed(0)}), reducing adaptability.`);
-    if (analysis.infoActionRatio > 3) weaknesses.push(`Info-to-action ratio (${analysis.infoActionRatio.toFixed(1)}:1) suggests analysis-heavy behavior with delayed execution.`);
-    if (weaknesses.length === 0) weaknesses.push("No severe operational weakness identified in this run.");
+    if (result.finalScore <= 0) weaknesses.push(isZh ? `30 天净现金为负（${formatYen(result.finalScore)}），未达到盈亏平衡。` : `Ended below break-even with ${formatYen(result.finalScore)} 30-Day Net Cash.`);
+    if (analysis.errorRate > medianErrorRate) weaknesses.push(isZh ? `工具调用错误率（${formatPct(analysis.errorRate)}）高于中位数（${formatPct(medianErrorRate)}），造成执行损耗。` : `Tool Call Error Rate (${formatPct(analysis.errorRate)}) is above median (${formatPct(medianErrorRate)}), causing execution leakage.`);
+    if (analysis.zeroRevenueDays > medianZeroRevenueDays) weaknesses.push(isZh ? `零收入天数较高（${analysis.zeroRevenueDays} 天），存在缺货或需求转化问题。` : `High zero-revenue exposure (${analysis.zeroRevenueDays} days) indicates stockout or demand conversion issues.`);
+    if (analysis.setPriceCalls < medianPricing) weaknesses.push(isZh ? `调价频次低于中位数（${analysis.setPriceCalls} vs ${medianPricing.toFixed(0)}），适应性不足。` : `Pricing cadence is below median (${analysis.setPriceCalls} vs ${medianPricing.toFixed(0)}), reducing adaptability.`);
+    if (analysis.infoActionRatio > 3) weaknesses.push(isZh ? `信息/行动比过高（${analysis.infoActionRatio.toFixed(1)}:1），表现为分析偏重、执行滞后。` : `Info-to-action ratio (${analysis.infoActionRatio.toFixed(1)}:1) suggests analysis-heavy behavior with delayed execution.`);
+    if (weaknesses.length === 0) weaknesses.push(isZh ? "本次运行未识别到显著的结构性短板。" : "No severe operational weakness identified in this run.");
 
     const successReasons: string[] = [];
-    if (analysis.setPriceCalls >= medianPricing) successReasons.push("Frequent pricing updates improved demand capture and protected margin under changing conditions.");
-    if (analysis.errorRate <= medianErrorRate) successReasons.push("Lower execution errors preserved action effectiveness and reduced wasted turns.");
-    if (analysis.zeroRevenueDays <= medianZeroRevenueDays) successReasons.push("Fewer zero-revenue days helped maintain steady cash inflow throughout the month.");
-    if (analysis.totalRevenue > referenceAnalysis.totalRevenue) successReasons.push(`Revenue outperformed ${referenceAnalysis.displayName} by ${formatYen(analysis.totalRevenue - referenceAnalysis.totalRevenue)}.`);
-    if (successReasons.length === 0) successReasons.push("Primary success signals were limited; gains came from incremental execution rather than one decisive edge.");
+    if (analysis.setPriceCalls >= medianPricing) successReasons.push(isZh ? "高频调价提升了需求捕获能力，并在波动环境下更好保护毛利。" : "Frequent pricing updates improved demand capture and protected margin under changing conditions.");
+    if (analysis.errorRate <= medianErrorRate) successReasons.push(isZh ? "较低的执行错误率提升了行动有效性，减少了无效回合。" : "Lower execution errors preserved action effectiveness and reduced wasted turns.");
+    if (analysis.zeroRevenueDays <= medianZeroRevenueDays) successReasons.push(isZh ? "更少的零收入天数让月内现金流更连续稳定。" : "Fewer zero-revenue days helped maintain steady cash inflow throughout the month.");
+    if (analysis.totalRevenue > referenceAnalysis.totalRevenue) successReasons.push(isZh ? `收入领先 ${referenceAnalysis.displayName} ${formatYen(analysis.totalRevenue - referenceAnalysis.totalRevenue)}。` : `Revenue outperformed ${referenceAnalysis.displayName} by ${formatYen(analysis.totalRevenue - referenceAnalysis.totalRevenue)}.`);
+    if (successReasons.length === 0) successReasons.push(isZh ? "缺少非常突出的成功信号，收益更多来自渐进式执行而非单点优势。" : "Primary success signals were limited; gains came from incremental execution rather than one decisive edge.");
 
     const failureReasons: string[] = [];
-    if (analysis.totalRevenue < referenceAnalysis.totalRevenue) failureReasons.push(`Revenue trailed ${referenceAnalysis.displayName} by ${formatYen(referenceAnalysis.totalRevenue - analysis.totalRevenue)}.`);
-    if (analysis.grossMargin < referenceAnalysis.grossMargin) failureReasons.push(`Margin lagged benchmark by ${((referenceAnalysis.grossMargin - analysis.grossMargin) * 100).toFixed(1)} points.`);
-    if (analysis.errorRate > referenceAnalysis.errorRate) failureReasons.push(`Error rate was ${((analysis.errorRate - referenceAnalysis.errorRate) * 100).toFixed(1)} points higher than benchmark.`);
-    if (analysis.zeroRevenueDays > referenceAnalysis.zeroRevenueDays) failureReasons.push(`More zero-revenue days (${analysis.zeroRevenueDays} vs ${referenceAnalysis.zeroRevenueDays}) reduced compounding cash flow.`);
-    if (failureReasons.length === 0) failureReasons.push("No major structural failure observed relative to the reference model.");
+    if (analysis.totalRevenue < referenceAnalysis.totalRevenue) failureReasons.push(isZh ? `收入落后 ${referenceAnalysis.displayName} ${formatYen(referenceAnalysis.totalRevenue - analysis.totalRevenue)}。` : `Revenue trailed ${referenceAnalysis.displayName} by ${formatYen(referenceAnalysis.totalRevenue - analysis.totalRevenue)}.`);
+    if (analysis.grossMargin < referenceAnalysis.grossMargin) failureReasons.push(isZh ? `毛利率较基准低 ${((referenceAnalysis.grossMargin - analysis.grossMargin) * 100).toFixed(1)} 点。` : `Margin lagged benchmark by ${((referenceAnalysis.grossMargin - analysis.grossMargin) * 100).toFixed(1)} points.`);
+    if (analysis.errorRate > referenceAnalysis.errorRate) failureReasons.push(isZh ? `错误率比基准高 ${((analysis.errorRate - referenceAnalysis.errorRate) * 100).toFixed(1)} 点。` : `Error rate was ${((analysis.errorRate - referenceAnalysis.errorRate) * 100).toFixed(1)} points higher than benchmark.`);
+    if (analysis.zeroRevenueDays > referenceAnalysis.zeroRevenueDays) failureReasons.push(isZh ? `零收入天数更多（${analysis.zeroRevenueDays} vs ${referenceAnalysis.zeroRevenueDays}），削弱了现金流复利。` : `More zero-revenue days (${analysis.zeroRevenueDays} vs ${referenceAnalysis.zeroRevenueDays}) reduced compounding cash flow.`);
+    if (failureReasons.length === 0) failureReasons.push(isZh ? "相对参考模型未观察到明显结构性失败。" : "No major structural failure observed relative to the reference model.");
 
-    const relationLabel = hasReferencePeer ? (idx === 0 ? "vs Runner-up" : "vs Top Model") : "Single Model Run";
+    const relationLabel = hasReferencePeer
+      ? (idx === 0 ? (isZh ? "对比亚军" : "vs Runner-up") : (isZh ? "对比冠军" : "vs Top Model"))
+      : (isZh ? "单模型运行" : "Single Model Run");
     const comparisonNarrative = hasReferencePeer
-      ? `${analysis.displayName} is ${formatYen(result.finalScore - referenceResult.finalScore)} away from ${referenceAnalysis.displayName} in 30-Day Net Cash. ` +
-        `The gap combines revenue (${formatYen(analysis.totalRevenue - referenceAnalysis.totalRevenue)}), margin (${((analysis.grossMargin - referenceAnalysis.grossMargin) * 100).toFixed(1)} pts), and tool reliability (${((analysis.errorRate - referenceAnalysis.errorRate) * 100).toFixed(1)} pts error-rate delta).`
-      : "Only one model is available in this run, so comparative benchmarking is not available yet.";
+      ? (isZh
+          ? `${analysis.displayName} 相比 ${referenceAnalysis.displayName} 的 30 天净现金差值为 ${formatYen(result.finalScore - referenceResult.finalScore)}。差距主要来自收入（${formatYen(analysis.totalRevenue - referenceAnalysis.totalRevenue)}）、毛利率（${((analysis.grossMargin - referenceAnalysis.grossMargin) * 100).toFixed(1)} 点）和执行可靠性（错误率差 ${((analysis.errorRate - referenceAnalysis.errorRate) * 100).toFixed(1)} 点）。`
+          : `${analysis.displayName} is ${formatYen(result.finalScore - referenceResult.finalScore)} away from ${referenceAnalysis.displayName} in 30-Day Net Cash. The gap combines revenue (${formatYen(analysis.totalRevenue - referenceAnalysis.totalRevenue)}), margin (${((analysis.grossMargin - referenceAnalysis.grossMargin) * 100).toFixed(1)} pts), and tool reliability (${((analysis.errorRate - referenceAnalysis.errorRate) * 100).toFixed(1)} pts error-rate delta).`)
+      : (isZh ? "当前仅有单模型数据，暂不支持对比基准分析。" : "Only one model is available in this run, so comparative benchmarking is not available yet.");
 
     const chapters = [
       {
-        title: "Opening Setup",
-        dayRange: "Day 1-10",
+        title: isZh ? "开局阶段" : "Opening Setup",
+        dayRange: isZh ? "第 1-10 天" : "Day 1-10",
         thesis:
           phaseMetrics.early.profit >= 0
-            ? `The model established a viable opening with ${formatYen(phaseMetrics.early.revenue)} revenue and ${formatYen(phaseMetrics.early.profit)} net profit in the first 10 days.`
-            : `The opening was unstable: despite ${formatYen(phaseMetrics.early.revenue)} revenue, the model ended Day 1-10 at ${formatYen(phaseMetrics.early.profit)} net profit.`,
+            ? (isZh
+                ? `模型在前 10 天完成了较稳健开局，收入 ${formatYen(phaseMetrics.early.revenue)}，净利润 ${formatYen(phaseMetrics.early.profit)}。`
+                : `The model established a viable opening with ${formatYen(phaseMetrics.early.revenue)} revenue and ${formatYen(phaseMetrics.early.profit)} net profit in the first 10 days.`)
+            : (isZh
+                ? `开局不稳定：尽管收入达到 ${formatYen(phaseMetrics.early.revenue)}，但第 1-10 天净利润为 ${formatYen(phaseMetrics.early.profit)}。`
+                : `The opening was unstable: despite ${formatYen(phaseMetrics.early.revenue)} revenue, the model ended Day 1-10 at ${formatYen(phaseMetrics.early.profit)} net profit.`),
         bullets: [
-          `Core actions: ${phaseActions.early.purchase} purchases, ${phaseActions.early.setPrice} pricing changes, ${phaseActions.early.promotion} promotions.`,
-          `Execution load: ${phaseMetrics.early.toolCalls} tool calls with ${(phaseMetrics.early.errors / Math.max(1, phaseMetrics.early.toolCalls) * 100).toFixed(1)}% phase error rate.`,
-          `Demand continuity: ${phaseMetrics.early.zeroRevenueDays} zero-revenue days.`,
+          isZh
+            ? `核心动作：采购 ${phaseActions.early.purchase} 次，调价 ${phaseActions.early.setPrice} 次，促销 ${phaseActions.early.promotion} 次。`
+            : `Core actions: ${phaseActions.early.purchase} purchases, ${phaseActions.early.setPrice} pricing changes, ${phaseActions.early.promotion} promotions.`,
+          isZh
+            ? `执行负载：工具调用 ${phaseMetrics.early.toolCalls} 次，阶段错误率 ${(phaseMetrics.early.errors / Math.max(1, phaseMetrics.early.toolCalls) * 100).toFixed(1)}%。`
+            : `Execution load: ${phaseMetrics.early.toolCalls} tool calls with ${(phaseMetrics.early.errors / Math.max(1, phaseMetrics.early.toolCalls) * 100).toFixed(1)}% phase error rate.`,
+          isZh
+            ? `需求连续性：零收入天数 ${phaseMetrics.early.zeroRevenueDays} 天。`
+            : `Demand continuity: ${phaseMetrics.early.zeroRevenueDays} zero-revenue days.`,
         ],
         evidence:
-          `Best day in full run occurred on D${best.day} (${formatYen(best.profit)}), worst on D${worst.day} (${formatYen(worst.profit)}).`,
+          isZh
+            ? `全周期最佳日为 D${best.day}（${formatYen(best.profit)}），最差日为 D${worst.day}（${formatYen(worst.profit)}）。`
+            : `Best day in full run occurred on D${best.day} (${formatYen(best.profit)}), worst on D${worst.day} (${formatYen(worst.profit)}).`,
       },
       {
-        title: "Mid-Run Optimization",
-        dayRange: "Day 11-20",
+        title: isZh ? "中程优化" : "Mid-Run Optimization",
+        dayRange: isZh ? "第 11-20 天" : "Day 11-20",
         thesis:
           phaseMetrics.mid.profit >= 0
-            ? `Mid-run decisions compounded positively, producing ${formatYen(phaseMetrics.mid.profit)} profit in Days 11-20.`
-            : `Mid-run failed to stabilize profitability, with ${formatYen(phaseMetrics.mid.profit)} profit during Days 11-20.`,
+            ? (isZh
+                ? `中程决策形成正向累积，第 11-20 天利润为 ${formatYen(phaseMetrics.mid.profit)}。`
+                : `Mid-run decisions compounded positively, producing ${formatYen(phaseMetrics.mid.profit)} profit in Days 11-20.`)
+            : (isZh
+                ? `中程未能稳定盈利，第 11-20 天利润为 ${formatYen(phaseMetrics.mid.profit)}。`
+                : `Mid-run failed to stabilize profitability, with ${formatYen(phaseMetrics.mid.profit)} profit during Days 11-20.`),
         bullets: [
-          `Pricing cadence shifted to ${phaseActions.mid.setPrice} updates in this phase.`,
-          `Procurement + promotion balance: ${phaseActions.mid.purchase} purchase calls and ${phaseActions.mid.promotion} promotions.`,
-          `Tool throughput stayed at ${phaseMetrics.mid.toolCalls} calls; zero-revenue days: ${phaseMetrics.mid.zeroRevenueDays}.`,
+          isZh
+            ? `本阶段调价节奏为 ${phaseActions.mid.setPrice} 次。`
+            : `Pricing cadence shifted to ${phaseActions.mid.setPrice} updates in this phase.`,
+          isZh
+            ? `采购与促销平衡：采购 ${phaseActions.mid.purchase} 次，促销 ${phaseActions.mid.promotion} 次。`
+            : `Procurement + promotion balance: ${phaseActions.mid.purchase} purchase calls and ${phaseActions.mid.promotion} promotions.`,
+          isZh
+            ? `工具吞吐：调用 ${phaseMetrics.mid.toolCalls} 次；零收入天数 ${phaseMetrics.mid.zeroRevenueDays} 天。`
+            : `Tool throughput stayed at ${phaseMetrics.mid.toolCalls} calls; zero-revenue days: ${phaseMetrics.mid.zeroRevenueDays}.`,
         ],
-        evidence: `Gross margin at run level is ${formatPct(analysis.grossMargin)}, with overall Tool Call Error Rate at ${formatPct(analysis.errorRate)}.`,
+        evidence: isZh
+          ? `全程毛利率为 ${formatPct(analysis.grossMargin)}，整体工具调用错误率为 ${formatPct(analysis.errorRate)}。`
+          : `Gross margin at run level is ${formatPct(analysis.grossMargin)}, with overall Tool Call Error Rate at ${formatPct(analysis.errorRate)}.`,
       },
       {
-        title: "Endgame Execution",
-        dayRange: "Day 21-30",
+        title: isZh ? "收官执行" : "Endgame Execution",
+        dayRange: isZh ? "第 21-30 天" : "Day 21-30",
         thesis:
           phaseMetrics.late.profit >= 0
-            ? `The model closed with resilient endgame execution and ${formatYen(phaseMetrics.late.profit)} late-phase profit.`
-            : `Late phase dragged results down: Days 21-30 produced ${formatYen(phaseMetrics.late.profit)} net profit.`,
+            ? (isZh
+                ? `模型在收官阶段保持韧性执行，后 10 天利润为 ${formatYen(phaseMetrics.late.profit)}。`
+                : `The model closed with resilient endgame execution and ${formatYen(phaseMetrics.late.profit)} late-phase profit.`)
+            : (isZh
+                ? `收官阶段拖累整体结果：第 21-30 天净利润为 ${formatYen(phaseMetrics.late.profit)}。`
+                : `Late phase dragged results down: Days 21-30 produced ${formatYen(phaseMetrics.late.profit)} net profit.`),
         bullets: [
-          `Late actions: ${phaseActions.late.purchase} purchases, ${phaseActions.late.setPrice} pricing changes, ${phaseActions.late.promotion} promotions.`,
-          `Cash conversion pressure: ${phaseMetrics.late.zeroRevenueDays} zero-revenue days in the final 10-day window.`,
-          `Final phase execution quality: ${(phaseMetrics.late.errors / Math.max(1, phaseMetrics.late.toolCalls) * 100).toFixed(1)}% error rate (${phaseMetrics.late.errors}/${phaseMetrics.late.toolCalls}).`,
+          isZh
+            ? `后段动作：采购 ${phaseActions.late.purchase} 次，调价 ${phaseActions.late.setPrice} 次，促销 ${phaseActions.late.promotion} 次。`
+            : `Late actions: ${phaseActions.late.purchase} purchases, ${phaseActions.late.setPrice} pricing changes, ${phaseActions.late.promotion} promotions.`,
+          isZh
+            ? `现金转化压力：最后 10 天中有 ${phaseMetrics.late.zeroRevenueDays} 天零收入。`
+            : `Cash conversion pressure: ${phaseMetrics.late.zeroRevenueDays} zero-revenue days in the final 10-day window.`,
+          isZh
+            ? `收官阶段执行质量：错误率 ${(phaseMetrics.late.errors / Math.max(1, phaseMetrics.late.toolCalls) * 100).toFixed(1)}%（${phaseMetrics.late.errors}/${phaseMetrics.late.toolCalls}）。`
+            : `Final phase execution quality: ${(phaseMetrics.late.errors / Math.max(1, phaseMetrics.late.toolCalls) * 100).toFixed(1)}% error rate (${phaseMetrics.late.errors}/${phaseMetrics.late.toolCalls}).`,
         ],
-        evidence: `Run finished at ${formatYen(result.finalScore)} net cash after 30 days, versus ${formatYen(referenceResult.finalScore)} for ${referenceAnalysis.displayName}.`,
+        evidence: isZh
+          ? `30 天结束后净现金为 ${formatYen(result.finalScore)}，对比 ${referenceAnalysis.displayName} 的 ${formatYen(referenceResult.finalScore)}。`
+          : `Run finished at ${formatYen(result.finalScore)} net cash after 30 days, versus ${formatYen(referenceResult.finalScore)} for ${referenceAnalysis.displayName}.`,
       },
     ];
 
@@ -779,39 +896,39 @@ function buildDeepDiveReports({
 
     const radarData: Record<string, string | number>[] = [
       {
-        metric: "Net Cash",
+        metric: isZh ? "净现金" : "Net Cash",
         [modelKey]: normalizeTo100(result.finalScore, scoreMin, scoreMax),
         [referenceKey]: normalizeTo100(referenceResult.finalScore, scoreMin, scoreMax),
       },
       {
-        metric: "Revenue",
+        metric: isZh ? "收入" : "Revenue",
         [modelKey]: normalizeTo100(analysis.totalRevenue, revenueMin, revenueMax),
         [referenceKey]: normalizeTo100(referenceAnalysis.totalRevenue, revenueMin, revenueMax),
       },
       {
-        metric: "Gross Margin",
+        metric: isZh ? "毛利率" : "Gross Margin",
         [modelKey]: normalizeTo100(analysis.grossMargin, marginMin, marginMax),
         [referenceKey]: normalizeTo100(referenceAnalysis.grossMargin, marginMin, marginMax),
       },
       {
-        metric: "Tool Reliability",
+        metric: isZh ? "工具可靠性" : "Tool Reliability",
         [modelKey]: normalizeTo100(1 - analysis.errorRate, reliabilityMin, reliabilityMax),
         [referenceKey]: normalizeTo100(1 - referenceAnalysis.errorRate, reliabilityMin, reliabilityMax),
       },
       {
-        metric: "Pricing Activity",
+        metric: isZh ? "定价活跃度" : "Pricing Activity",
         [modelKey]: normalizeTo100(analysis.setPriceCalls, pricingMin, pricingMax),
         [referenceKey]: normalizeTo100(referenceAnalysis.setPriceCalls, pricingMin, pricingMax),
       },
       {
-        metric: "Profitable Days",
+        metric: isZh ? "盈利天数" : "Profitable Days",
         [modelKey]: normalizeTo100(analysis.profitableDays, profitableMin, profitableMax),
         [referenceKey]: normalizeTo100(referenceAnalysis.profitableDays, profitableMin, profitableMax),
       },
     ];
 
-    const toolMixData: Record<string, string | number>[] = (Object.keys(CATEGORY_LABELS) as CategoryKey[]).map(cat => ({
-      category: CATEGORY_LABELS[cat],
+    const toolMixData: Record<string, string | number>[] = (Object.keys(categoryLabels) as CategoryKey[]).map(cat => ({
+      category: categoryLabels[cat],
       [modelKey]: callsByCategory[cat],
       [referenceKey]: referenceCallsByCategory[cat],
     }));

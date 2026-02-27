@@ -3,6 +3,7 @@
 import { StrategyGroup } from "@/components/StrategyGroup";
 import { PriceVsProfitScatter } from "@/components/ScatterChart";
 import { formatYen } from "@/lib/types";
+import type { Locale } from "@/lib/i18n";
 
 interface ScatterDataPoint {
   displayName: string;
@@ -34,9 +35,11 @@ interface StrategyGroupData {
 interface InsightsContentProps {
   scatterData: ScatterDataPoint[];
   strategyGroups: StrategyGroupData[];
+  locale?: Locale;
 }
 
-export function InsightsContent({ scatterData, strategyGroups }: InsightsContentProps) {
+export function InsightsContent({ scatterData, strategyGroups, locale = "en" }: InsightsContentProps) {
+  const isZh = locale === "zh";
   const topNetCash = [...scatterData].sort((a, b) => b.netProfit - a.netProfit)[0];
   const topRevenue = [...scatterData].sort((a, b) => b.totalRevenue - a.totalRevenue)[0];
   const mostPriceChanges = [...scatterData].sort((a, b) => b.setPriceCalls - a.setPriceCalls)[0];
@@ -47,55 +50,55 @@ export function InsightsContent({ scatterData, strategyGroups }: InsightsContent
     <>
       <section className="insights-panel">
         <div className="insights-block-head">
-          <h2>Price Changes vs Net Profit</h2>
-          <span className="insights-block-subtitle">bubble size = total revenue</span>
+          <h2>{isZh ? "调价次数 vs 净利润" : "Price Changes vs Net Profit"}</h2>
+          <span className="insights-block-subtitle">{isZh ? "气泡大小 = 总收入" : "bubble size = total revenue"}</span>
         </div>
         <div className="insights-chip-row">
           {topNetCash ? (
             <div className="insights-chip">
-              <span>Top Net Cash</span>
+              <span>{isZh ? "净现金最高" : "Top Net Cash"}</span>
               <strong>{topNetCash.displayName} ({formatYen(topNetCash.netProfit)})</strong>
             </div>
           ) : null}
           {topRevenue ? (
             <div className="insights-chip">
-              <span>Top Revenue</span>
+              <span>{isZh ? "收入最高" : "Top Revenue"}</span>
               <strong>{topRevenue.displayName} ({formatYen(topRevenue.totalRevenue)})</strong>
             </div>
           ) : null}
           {mostPriceChanges ? (
             <div className="insights-chip">
-              <span>Most Price Changes</span>
+              <span>{isZh ? "调价最频繁" : "Most Price Changes"}</span>
               <strong>{mostPriceChanges.displayName} ({mostPriceChanges.setPriceCalls})</strong>
             </div>
           ) : null}
         </div>
         <div className="insights-chart-shell">
-          <PriceVsProfitScatter data={scatterData} height={400} />
+          <PriceVsProfitScatter data={scatterData} height={400} locale={locale} />
         </div>
       </section>
 
       <section className="insights-panel">
         <div className="insights-block-head">
-          <h2>Strategy Groups</h2>
-          <span className="insights-block-subtitle">click to expand</span>
+          <h2>{isZh ? "策略分组" : "Strategy Groups"}</h2>
+          <span className="insights-block-subtitle">{isZh ? "点击展开详情" : "click to expand"}</span>
         </div>
         <div className="insights-chip-row">
           {strongestStrategy ? (
             <div className="insights-chip">
-              <span>Highest Avg Net Cash</span>
+              <span>{isZh ? "平均净现金最高" : "Highest Avg Net Cash"}</span>
               <strong>{strongestStrategy.title} ({formatYen(strongestStrategy.avgNetProfit)})</strong>
             </div>
           ) : null}
           {largestStrategy ? (
             <div className="insights-chip">
-              <span>Largest Cluster</span>
-              <strong>{largestStrategy.title} ({largestStrategy.models.length} models)</strong>
+              <span>{isZh ? "最大策略簇" : "Largest Cluster"}</span>
+              <strong>{largestStrategy.title} ({largestStrategy.models.length}{isZh ? " 个模型" : " models"})</strong>
             </div>
           ) : null}
           <div className="insights-chip">
-            <span>Strategy Families</span>
-            <strong>{strategyGroups.length} detected groups</strong>
+            <span>{isZh ? "策略家族数" : "Strategy Families"}</span>
+            <strong>{strategyGroups.length}{isZh ? " 个已识别分组" : " detected groups"}</strong>
           </div>
         </div>
         <div className="strategy-group-stack">
@@ -109,6 +112,7 @@ export function InsightsContent({ scatterData, strategyGroups }: InsightsContent
               summary={g.summary}
               avgNetProfit={g.avgNetProfit}
               defaultOpen={g.type === "aggressive"}
+              locale={locale}
             />
           ))}
         </div>
