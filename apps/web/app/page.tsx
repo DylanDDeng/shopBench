@@ -32,7 +32,7 @@ export default function Home() {
       <div className="page-header">
         <h1>ShopBench Leaderboard</h1>
         <p>
-          Models ranked by 30-day net cash in a convenience-store simulation.
+          Overall rank is based on 30-Day Net Cash. Gross margin and tool call error rate highlight different strengths and may have different winners.
         </p>
       </div>
 
@@ -45,11 +45,6 @@ export default function Home() {
         </div>
       ) : (
         <>
-          <p className="about-note" style={{ marginBottom: "1rem" }}>
-            Overall rank is based on 30-Day Net Cash. Gross margin and tool call error rate
-            highlight different strengths and may have different winners.
-          </p>
-
           <div className="leaderboard-highlights" style={{ marginBottom: "1.5rem" }}>
             <article className="highlight-card highlight-card-overall">
               <div className="highlight-watermark" aria-hidden>
