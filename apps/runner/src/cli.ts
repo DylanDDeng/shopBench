@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { resolve, dirname, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runSimulation } from "./runner.js";
 import { generateReport } from "@shopbench/scoring";
@@ -57,7 +57,14 @@ async function main() {
   }
 
   const scenarioPath = getArg(["--scenario", "-s"]) ?? resolve(ROOT, "scenarios/base.json");
-  const outputDir = getArg(["--output", "-o"]) ?? resolve(ROOT, "data");
+  const outputArg = getArg(["--output", "-o"]);
+  const outputDir = outputArg
+    ? isAbsolute(outputArg)
+      ? outputArg
+      : outputArg.startsWith("./") || outputArg.startsWith("../")
+        ? resolve(process.cwd(), outputArg)
+        : resolve(ROOT, outputArg)
+    : resolve(ROOT, "data");
   const baseUrl = getArg(["--base-url"]);
   const verbose = args.includes("--verbose") || args.includes("-v");
 
