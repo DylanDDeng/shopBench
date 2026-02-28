@@ -2214,8 +2214,8 @@ thead tr:hover {
   top: calc(100% + 0.38rem);
   left: 50%;
   transform: translateX(-50%) translateY(-1px);
-  min-width: 180px;
-  max-width: 240px;
+  min-width: 220px;
+  max-width: min(340px, calc(100vw - 48px));
   background: #ffffff;
   color: #334155;
   border: 1px solid #cbd5e1;
@@ -2228,6 +2228,9 @@ thead tr:hover {
   font-weight: 500;
   z-index: 20;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
@@ -2500,7 +2503,8 @@ thead tr:hover {
   .metric-info-tooltip {
     left: 0;
     transform: translateX(0) translateY(-2px);
-    max-width: min(230px, 75vw);
+    min-width: 180px;
+    max-width: min(300px, calc(100vw - 32px));
   }
 
   .metric-info-tooltip::before {
