@@ -74,7 +74,7 @@ export default function Home() {
 
             <article className="top-signal top-signal-margin" title={bestGrossMarginModel}>
               <div className="top-signal-mark" aria-hidden>
-                <img src="/leaderboard/minimax-color.svg" alt="" />
+                <img src="/leaderboard/stepfun-color.svg" alt="" />
               </div>
               <p className="top-signal-label">Best Gross Margin</p>
               <p className="top-signal-value">{bestGrossMarginModel}</p>
