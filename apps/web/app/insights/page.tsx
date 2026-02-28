@@ -288,6 +288,7 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
     analyses.map(m => m.setPriceCalls),
     analyses.map(m => m.netProfit),
   );
+  const priceR2 = priceR * priceR;
 
   const highestRevModel = analyses.reduce((best, m) => m.totalRevenue > best.totalRevenue ? m : best, analyses[0]);
   const highestProfitModel = analyses.reduce((best, m) => m.netProfit > best.netProfit ? m : best, analyses[0]);
@@ -297,27 +298,34 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
     ? profitableModels.reduce((s, m) => s + (Number.isFinite(m.infoActionRatio) ? m.infoActionRatio : 0), 0) / profitableModels.length
     : 0;
 
-  // Find largest vs smallest model comparison (Opus vs Sonnet pattern)
-  const sortedByProfit = [...analyses].sort((a, b) => b.netProfit - a.netProfit);
-  const bestModel = sortedByProfit[0];
-  const worstModel = sortedByProfit[sortedByProfit.length - 1];
+  const cashGapInsights = analyses.map((m, idx) => {
+    const result = results[idx];
+    const cumulativeNetProfit = result.metrics.dailyProfitTrend.reduce((sum, p) => sum + p, 0);
+    return {
+      displayName: m.displayName,
+      gap: result.finalScore - cumulativeNetProfit,
+      finalNetCash: result.finalScore,
+      cumulativeNetProfit,
+    };
+  });
+  const maxCashGapModel = [...cashGapInsights].sort((a, b) => a.gap - b.gap)[0];
 
   const insights = [
     {
       icon: "\u{1F4CA}",
       value: formatPct(profitableRate),
-      label: isZh ? "盈利模型占比" : "Profitability Rate",
+      label: isZh ? "净现金为正模型占比" : "Positive Net-Cash Model Rate",
       description: isZh
-        ? `${analyses.length} 个模型中仅有 ${profitableCount} 个在 30 天内实现正利润`
-        : `Only ${profitableCount} of ${analyses.length} models achieved positive profit over 30 days`,
+        ? `${analyses.length} 个模型中仅有 ${profitableCount} 个实现 30 天净现金 > 0（口径：finalScore，不是毛利率）`
+        : `Only ${profitableCount} of ${analyses.length} models achieved 30-day net cash > 0 (finalScore, not gross margin).`,
     },
     {
       icon: "\u{1F4C8}",
       value: `r = ${priceR.toFixed(2)}`,
       label: isZh ? "调价频率 \u{2194} 净现金" : "Price Changes \u{2194} Net Cash",
       description: isZh
-        ? "跨模型看，调价频率与净现金呈显著正相关"
-        : "Strong correlation between pricing frequency and net cash across all models",
+        ? `皮尔逊相关系数，当前为中等正相关（R²=${priceR2.toFixed(2)}）`
+        : `Pearson correlation; currently a moderate positive relationship (R²=${priceR2.toFixed(2)}).`,
     },
     {
       icon: "\u{26A0}\u{FE0F}",
@@ -336,12 +344,16 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
         : "Average info-to-action ratio among profitable models \u{2014} too high means analysis paralysis",
     },
     {
-      icon: "\u{1F9E0}",
-      value: `#1 vs #${sortedByProfit.length}`,
-      label: isZh ? "参数规模 \u{2260} 表现" : "Size \u{2260} Performance",
+      icon: "\u{1F4B8}",
+      value: maxCashGapModel ? formatYen(maxCashGapModel.gap) : formatYen(0),
+      label: isZh ? "最大现金缺口" : "Largest Cash Gap",
       description: isZh
-        ? `${bestModel.displayName} 明显优于 ${worstModel.displayName}，更大的模型不一定更好`
-        : `${bestModel.displayName} outperformed ${worstModel.displayName} \u{2014} bigger models aren't always better`,
+        ? maxCashGapModel
+          ? `${maxCashGapModel.displayName} 的现金缺口最大：净现金 ${formatYen(maxCashGapModel.finalNetCash)}，累计净利润 ${formatYen(maxCashGapModel.cumulativeNetProfit)}`
+          : "暂无可用数据"
+        : maxCashGapModel
+          ? `${maxCashGapModel.displayName} has the largest cash gap: net cash ${formatYen(maxCashGapModel.finalNetCash)} vs cumulative net profit ${formatYen(maxCashGapModel.cumulativeNetProfit)}.`
+          : "No data available.",
     },
   ];
   const strongestGroup = [...strategyGroups].sort((a, b) => b.avgNetProfit - a.avgNetProfit)[0];
@@ -386,7 +398,7 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
         </p>
         <div className="insights-intro-pills">
           <div className="insights-intro-pill">
-            <span>{isZh ? "盈利模型数" : "Profitable Models"}</span>
+            <span>{isZh ? "净现金为正模型数" : "Models with Positive Net Cash"}</span>
             <strong>{profitableCount} / {analyses.length}</strong>
           </div>
           <div className="insights-intro-pill">
