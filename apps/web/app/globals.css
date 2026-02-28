@@ -633,13 +633,13 @@ a:hover {
 }
 
 .top-signal-margin {
-  border-color: #ddd6fe;
-  background: linear-gradient(180deg, #f5f3ff 0%, #ffffff 92%);
+  border-color: #005AFF;
+  background: linear-gradient(180deg, #F2F7FF 0%, #ffffff 92%);
 }
 
 .top-signal-margin .top-signal-label,
 .top-signal-margin .top-signal-value {
-  color: #8b5cf6;
+  color: #005AFF;
 }
 
 .top-signal-margin .top-signal-mark {
