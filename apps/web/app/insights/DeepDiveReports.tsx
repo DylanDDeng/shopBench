@@ -28,6 +28,8 @@ interface DeepDiveComparison {
 
 interface DeepDiveCharts {
   trendData: Record<string, string | number>[];
+  inventoryData: Record<string, string | number>[];
+  grossProfitData: Record<string, string | number>[];
   radarData: Record<string, string | number>[];
   toolMixData: Record<string, string | number>[];
 }
@@ -72,7 +74,7 @@ interface DeepDiveReportsProps {
   locale?: Locale;
 }
 
-type EvidenceTab = "trajectory" | "radar" | "toolmix";
+type EvidenceTab = "trajectory" | "inventory" | "grossprofit" | "radar" | "toolmix";
 
 export function DeepDiveReports({ reports, locale = "en" }: DeepDiveReportsProps) {
   const isZh = locale === "zh";
@@ -200,6 +202,20 @@ export function DeepDiveReports({ reports, locale = "en" }: DeepDiveReportsProps
               </button>
               <button
                 type="button"
+                className={`deep-dive-tab ${evidenceTab === "inventory" ? "active" : ""}`}
+                onClick={() => setEvidenceTab("inventory")}
+              >
+                {isZh ? "30天库存轨迹" : "30-Day Inventory Trajectory"}
+              </button>
+              <button
+                type="button"
+                className={`deep-dive-tab ${evidenceTab === "grossprofit" ? "active" : ""}`}
+                onClick={() => setEvidenceTab("grossprofit")}
+              >
+                {isZh ? "每日毛利润" : "Daily Gross Profit"}
+              </button>
+              <button
+                type="button"
                 className={`deep-dive-tab ${evidenceTab === "radar" ? "active" : ""}`}
                 onClick={() => setEvidenceTab("radar")}
               >
@@ -218,6 +234,49 @@ export function DeepDiveReports({ reports, locale = "en" }: DeepDiveReportsProps
           {evidenceTab === "trajectory" && (
             <TrendLineChart
               data={report.charts.trendData}
+              xKey="day"
+              series={[
+                {
+                  key: report.chartKeys.model,
+                  name: report.displayName,
+                  color: report.colors.model,
+                  type: "area",
+                },
+                {
+                  key: report.chartKeys.reference,
+                  name: report.comparison.referenceName,
+                  color: report.colors.reference,
+                },
+              ]}
+              height={320}
+              showZeroLine
+            />
+          )}
+
+          {evidenceTab === "inventory" && (
+            <TrendLineChart
+              data={report.charts.inventoryData}
+              xKey="day"
+              series={[
+                {
+                  key: report.chartKeys.model,
+                  name: report.displayName,
+                  color: report.colors.model,
+                  type: "area",
+                },
+                {
+                  key: report.chartKeys.reference,
+                  name: report.comparison.referenceName,
+                  color: report.colors.reference,
+                },
+              ]}
+              height={320}
+            />
+          )}
+
+          {evidenceTab === "grossprofit" && (
+            <TrendLineChart
+              data={report.charts.grossProfitData}
               xKey="day"
               series={[
                 {

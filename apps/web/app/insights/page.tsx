@@ -1020,6 +1020,22 @@ function buildDeepDiveReports({
   const medianPricing = median(pricingValues);
   const medianZeroRevenueDays = median(analyses.map(a => a.zeroRevenueDays));
 
+  const buildNetCashSeries = (run: SimulationResult): number[] => {
+    // Keep this aligned with ranking score semantics:
+    // final score = finalCash - initialCash - outstandingLoans (inventory liquidation rate = 0).
+    const inferredInitialCash =
+      (run.metrics.finalCash ?? 0) - (run.finalScore ?? 0) - (run.metrics.outstandingLoans ?? 0);
+
+    return run.days.map(day => {
+      const cash = day.stateSnapshot?.cash ?? 0;
+      const outstandingLoans = (day.stateSnapshot?.loans ?? []).reduce(
+        (sum, loan) => sum + (loan.remainingBalance ?? 0),
+        0,
+      );
+      return cash - inferredInitialCash - outstandingLoans;
+    });
+  };
+
   return analyses.map((analysis, idx) => {
     const result = results[idx];
     const dm = derivedMetrics[idx];
@@ -1196,16 +1212,52 @@ function buildDeepDiveReports({
     ];
 
     const trendData: Record<string, string | number>[] = [];
-    let modelCum = 0;
-    let referenceCum = 0;
-    const days = Math.max(result.metrics.dailyProfitTrend.length, referenceResult.metrics.dailyProfitTrend.length);
+    const modelNetCashSeries = buildNetCashSeries(result);
+    const referenceNetCashSeries = buildNetCashSeries(referenceResult);
+    const days = Math.max(modelNetCashSeries.length, referenceNetCashSeries.length);
     for (let day = 0; day < days; day++) {
-      modelCum += result.metrics.dailyProfitTrend[day] ?? 0;
-      referenceCum += referenceResult.metrics.dailyProfitTrend[day] ?? 0;
+      const modelValue =
+        modelNetCashSeries.length > 0
+          ? modelNetCashSeries[Math.min(day, modelNetCashSeries.length - 1)]
+          : 0;
+      const referenceValue =
+        referenceNetCashSeries.length > 0
+          ? referenceNetCashSeries[Math.min(day, referenceNetCashSeries.length - 1)]
+          : 0;
       trendData.push({
         day: day + 1,
-        [modelKey]: Math.round(modelCum),
-        [referenceKey]: Math.round(referenceCum),
+        [modelKey]: Math.round(modelValue),
+        [referenceKey]: Math.round(referenceValue),
+      });
+    }
+
+    const inventoryData: Record<string, string | number>[] = [];
+    const inventoryDays = Math.max(dm.dailyInventoryValue.length, referenceDm.dailyInventoryValue.length);
+    for (let day = 0; day < inventoryDays; day++) {
+      const modelValue =
+        dm.dailyInventoryValue.length > 0
+          ? dm.dailyInventoryValue[Math.min(day, dm.dailyInventoryValue.length - 1)]
+          : 0;
+      const referenceValue =
+        referenceDm.dailyInventoryValue.length > 0
+          ? referenceDm.dailyInventoryValue[Math.min(day, referenceDm.dailyInventoryValue.length - 1)]
+          : 0;
+      inventoryData.push({
+        day: day + 1,
+        [modelKey]: Math.round(modelValue),
+        [referenceKey]: Math.round(referenceValue),
+      });
+    }
+
+    const grossProfitData: Record<string, string | number>[] = [];
+    const grossProfitDays = Math.max(dm.dailyRevenue.length, referenceDm.dailyRevenue.length);
+    for (let day = 0; day < grossProfitDays; day++) {
+      const modelGrossProfit = (dm.dailyRevenue[day] ?? 0) - (dm.dailyCOGS[day] ?? 0);
+      const referenceGrossProfit = (referenceDm.dailyRevenue[day] ?? 0) - (referenceDm.dailyCOGS[day] ?? 0);
+      grossProfitData.push({
+        day: day + 1,
+        [modelKey]: Math.round(modelGrossProfit),
+        [referenceKey]: Math.round(referenceGrossProfit),
       });
     }
 
@@ -1280,6 +1332,8 @@ function buildDeepDiveReports({
       },
       charts: {
         trendData,
+        inventoryData,
+        grossProfitData,
         radarData,
         toolMixData,
       },
