@@ -90,9 +90,9 @@ function MetricInfo({ label, help, locale }: MetricInfoProps) {
 
 function getRankBadge(rank: number, locale: Locale) {
   if (locale === "zh") {
-    if (rank === 0) return <span className="badge badge-gold">1名</span>;
-    if (rank === 1) return <span className="badge badge-silver">2名</span>;
-    if (rank === 2) return <span className="badge badge-bronze">3名</span>;
+    if (rank === 0) return <span className="badge badge-gold">1</span>;
+    if (rank === 1) return <span className="badge badge-silver">2</span>;
+    if (rank === 2) return <span className="badge badge-bronze">3</span>;
   }
   if (rank === 0) return <span className="badge badge-gold">1st</span>;
   if (rank === 1) return <span className="badge badge-silver">2nd</span>;
