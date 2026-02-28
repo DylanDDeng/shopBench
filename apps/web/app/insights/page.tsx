@@ -252,6 +252,34 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
     color: m.color,
   }));
 
+  const cashConversionData = analyses
+    .map((m, idx) => {
+      const result = results[idx];
+      const cumulativeNetProfit = result.metrics.dailyProfitTrend.reduce((sum, p) => sum + p, 0);
+      if (cumulativeNetProfit <= 0) return null;
+      const conversionPct = (result.finalScore / cumulativeNetProfit) * 100;
+      return {
+        name: m.displayName,
+        value: Number(conversionPct.toFixed(1)),
+        color: m.color,
+      };
+    })
+    .filter((item): item is { name: string; value: number; color: string } => item !== null)
+    .sort((a, b) => b.value - a.value);
+
+  const cashGapData = analyses
+    .map((m, idx) => {
+      const result = results[idx];
+      const cumulativeNetProfit = result.metrics.dailyProfitTrend.reduce((sum, p) => sum + p, 0);
+      const gap = result.finalScore - cumulativeNetProfit;
+      return {
+        name: m.displayName,
+        value: Number(gap.toFixed(1)),
+        color: m.color,
+      };
+    })
+    .sort((a, b) => a.value - b.value);
+
   // Compute the 5 insights
   const profitableCount = analyses.filter(m => m.netProfit > 0).length;
   const profitableRate = analyses.length > 0 ? profitableCount / analyses.length : 0;
@@ -286,10 +314,10 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
     {
       icon: "\u{1F4C8}",
       value: `r = ${priceR.toFixed(2)}`,
-      label: isZh ? "调价频率 \u{2194} 利润" : "Price Changes \u{2194} Profit",
+      label: isZh ? "调价频率 \u{2194} 净现金" : "Price Changes \u{2194} Net Cash",
       description: isZh
-        ? "跨模型看，调价频率与净利润呈显著正相关"
-        : "Strong correlation between pricing frequency and net profit across all models",
+        ? "跨模型看，调价频率与净现金呈显著正相关"
+        : "Strong correlation between pricing frequency and net cash across all models",
     },
     {
       icon: "\u{26A0}\u{FE0F}",
@@ -395,6 +423,8 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
       <InsightsContent
         locale={locale}
         scatterData={scatterData}
+        cashConversionData={cashConversionData}
+        cashGapData={cashGapData}
         strategyGroups={strategyGroups.map(g => ({
           type: g.type,
           color: g.color,

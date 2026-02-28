@@ -1450,6 +1450,24 @@ thead tr:hover {
   padding: 0.85rem;
 }
 
+.insights-dual-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.insights-subchart h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.96rem;
+}
+
+.insights-subchart p {
+  margin: 0 0 0.65rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
 /* ─── Insight Cards Grid ─── */
 
 .insight-grid {
@@ -2572,6 +2590,10 @@ thead tr:hover {
 
   .insights-chart-shell {
     padding: 0.6rem;
+  }
+
+  .insights-dual-grid {
+    grid-template-columns: 1fr;
   }
 
   .day-strip {
