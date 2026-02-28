@@ -4,11 +4,96 @@ import { MetricCard } from "@/components/MetricCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { ReportCharts } from "./ReportCharts";
 import { notFound } from "next/navigation";
+import type { Locale } from "@/lib/i18n";
 
-export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
+const REPORT_TEXT: Record<Locale, {
+  scenario: string;
+  completed: string;
+  score: string;
+  finalCash: string;
+  totalRevenue: string;
+  grossMargin: string;
+  toolCalls: string;
+  satisfaction: string;
+  reputation: string;
+  operationalMetrics: string;
+  cashFlowBreakDays: string;
+  inventoryWasteRate: string;
+  bankruptcyTriggered: string;
+  outstandingLoans: string;
+  avgDailyProfit: string;
+  totalHiresFires: string;
+  purchaseOrders: string;
+  failed: string;
+  priceAdjustments: string;
+  revenuePerCustomer: string;
+  yes: string;
+  no: string;
+  replayLink: string;
+}> = {
+  en: {
+    scenario: "Scenario",
+    completed: "Completed",
+    score: "Score",
+    finalCash: "Final Cash",
+    totalRevenue: "Total Revenue",
+    grossMargin: "Gross Margin",
+    toolCalls: "Tool Calls",
+    satisfaction: "Satisfaction",
+    reputation: "Reputation",
+    operationalMetrics: "Operational Metrics",
+    cashFlowBreakDays: "Cash Flow Break Days",
+    inventoryWasteRate: "Inventory Waste Rate",
+    bankruptcyTriggered: "Bankruptcy Triggered",
+    outstandingLoans: "Outstanding Loans",
+    avgDailyProfit: "Avg Daily Profit",
+    totalHiresFires: "Total Hires / Fires",
+    purchaseOrders: "Purchase Orders",
+    failed: "failed",
+    priceAdjustments: "Price Adjustments",
+    revenuePerCustomer: "Revenue per Customer",
+    yes: "Yes",
+    no: "No",
+    replayLink: "View Day-by-Day Replay",
+  },
+  zh: {
+    scenario: "场景",
+    completed: "完成时间",
+    score: "得分",
+    finalCash: "期末现金",
+    totalRevenue: "总收入",
+    grossMargin: "毛利率",
+    toolCalls: "工具调用数",
+    satisfaction: "满意度",
+    reputation: "声誉",
+    operationalMetrics: "运营指标",
+    cashFlowBreakDays: "现金流断裂天数",
+    inventoryWasteRate: "库存损耗率",
+    bankruptcyTriggered: "是否触发破产",
+    outstandingLoans: "未偿贷款",
+    avgDailyProfit: "日均利润",
+    totalHiresFires: "总招聘 / 解雇",
+    purchaseOrders: "采购订单",
+    failed: "失败",
+    priceAdjustments: "调价次数",
+    revenuePerCustomer: "单客收入",
+    yes: "是",
+    no: "否",
+    replayLink: "查看逐日回放",
+  },
+};
+
+export default async function ReportPage({
+  params,
+  locale = "en",
+}: {
+  params: Promise<{ id: string }>;
+  locale?: Locale;
+}) {
   const { id } = await params;
   const result = getResult(id);
   if (!result) notFound();
+  const text = REPORT_TEXT[locale];
 
   const m = result.metrics;
   const dm = computeDerivedMetrics(result);
@@ -75,7 +160,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       <div className="page-header">
         <h1>{getModelDisplayName(result.model)}</h1>
         <p>
-          Scenario: {result.scenario} &middot; Completed: {result.completedAt.slice(0, 10)}
+          {text.scenario}: {result.scenario} &middot; {text.completed}: {result.completedAt.slice(0, 10)}
         </p>
       </div>
 
@@ -83,37 +168,37 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       <div className="grid-6" style={{ marginBottom: "2rem" }}>
         <MetricCard
           value={formatYen(m.netProfit)}
-          label="Score"
+          label={text.score}
           color={m.netProfit >= 0 ? "#10b981" : "#ef4444"}
         />
         <MetricCard
           value={formatYen(m.finalCash)}
-          label="Final Cash"
+          label={text.finalCash}
           color="#f59e0b"
         />
         <MetricCard
           value={formatYen(dm.totalRevenue)}
-          label="Total Revenue"
+          label={text.totalRevenue}
           color="#60a5fa"
         />
         <MetricCard
           value={formatPct(dm.grossMargin)}
-          label="Gross Margin"
+          label={text.grossMargin}
           color="#a78bfa"
         />
         <MetricCard
           value={String(m.totalToolCalls)}
-          label="Tool Calls"
+          label={text.toolCalls}
           color="#84cc16"
         />
         <MetricCard
           value={`${sat[0]?.toFixed(0) ?? "–"} → ${sat[sat.length - 1]?.toFixed(0) ?? "–"}`}
-          label="Satisfaction"
+          label={text.satisfaction}
           color="#06b6d4"
         />
         <MetricCard
           value={`${rep[0]?.toFixed(0) ?? "–"} → ${rep[rep.length - 1]?.toFixed(0) ?? "–"}`}
-          label="Reputation"
+          label={text.reputation}
           color="#8b5cf6"
         />
       </div>
@@ -125,28 +210,29 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         toolCallsPerDay={toolCallsPerDay}
         productSales={productSales}
         endGameDays={endGameDays}
+        locale={locale}
       />
 
-      <SectionHeader title="Operational Metrics" />
+      <SectionHeader title={text.operationalMetrics} />
       <div className="card">
         <table>
           <tbody>
-            <tr><td>Cash Flow Break Days</td><td>{m.cashFlowBreakDays}</td></tr>
-            <tr><td>Inventory Waste Rate</td><td>{formatPct(m.inventoryWasteRate)}</td></tr>
-            <tr><td>Bankruptcy Triggered</td><td>{m.bankruptcyTriggered ? "Yes" : "No"}</td></tr>
-            <tr><td>Outstanding Loans</td><td>{formatYen(m.outstandingLoans)}</td></tr>
-            <tr><td>Avg Daily Profit</td><td>{formatYen(m.avgDailyProfit)}</td></tr>
-            <tr><td>Total Hires / Fires</td><td>{dm.hires} / {dm.fires}</td></tr>
-            <tr><td>Purchase Orders</td><td>{dm.ordersAttempted} ({dm.ordersFailed} failed)</td></tr>
-            <tr><td>Price Adjustments</td><td>{dm.setPriceCalls}</td></tr>
-            <tr><td>Revenue per Customer</td><td>{formatYen(dm.revenuePerCustomer)}</td></tr>
+            <tr><td>{text.cashFlowBreakDays}</td><td>{m.cashFlowBreakDays}</td></tr>
+            <tr><td>{text.inventoryWasteRate}</td><td>{formatPct(m.inventoryWasteRate)}</td></tr>
+            <tr><td>{text.bankruptcyTriggered}</td><td>{m.bankruptcyTriggered ? text.yes : text.no}</td></tr>
+            <tr><td>{text.outstandingLoans}</td><td>{formatYen(m.outstandingLoans)}</td></tr>
+            <tr><td>{text.avgDailyProfit}</td><td>{formatYen(m.avgDailyProfit)}</td></tr>
+            <tr><td>{text.totalHiresFires}</td><td>{dm.hires} / {dm.fires}</td></tr>
+            <tr><td>{text.purchaseOrders}</td><td>{dm.ordersAttempted} ({dm.ordersFailed} {text.failed})</td></tr>
+            <tr><td>{text.priceAdjustments}</td><td>{dm.setPriceCalls}</td></tr>
+            <tr><td>{text.revenuePerCustomer}</td><td>{formatYen(dm.revenuePerCustomer)}</td></tr>
           </tbody>
         </table>
       </div>
 
       <div style={{ marginTop: "1.5rem" }}>
-        <a href={`/replay/${result.id}`} className="action-link" style={{ fontSize: "1rem" }}>
-          View Day-by-Day Replay →
+        <a href={`/${locale}/replay/${result.id}`} className="action-link" style={{ fontSize: "1rem" }}>
+          {text.replayLink} →
         </a>
       </div>
     </div>

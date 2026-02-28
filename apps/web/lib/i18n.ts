@@ -22,10 +22,6 @@ export function stripLocalePrefix(pathname: string): string {
 
 export function getLocaleSwitchPath(pathname: string, targetLocale: Locale): string {
   const basePath = stripLocalePrefix(pathname);
-  const supportedPaths = new Set(["/", "/compare", "/insights", "/about"]);
-  if (!supportedPaths.has(basePath)) {
-    return `/${targetLocale}`;
-  }
   return basePath === "/" ? `/${targetLocale}` : `/${targetLocale}${basePath}`;
 }
 

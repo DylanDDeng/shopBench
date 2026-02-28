@@ -156,6 +156,7 @@ function ModelNameMarquee({ name }: { name: string }) {
 
 export function Leaderboard({ results, derivedMetrics, locale = "en" }: LeaderboardProps) {
   const text = LEADERBOARD_TEXT[locale];
+  const routePrefix = `/${locale}`;
 
   return (
     <div className="card leaderboard-table">
@@ -233,8 +234,8 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
                       <span className="action-menu-caret" aria-hidden>▾</span>
                     </summary>
                     <div className="action-menu-list">
-                      <a href={`/report/${r.id}`} className="action-menu-item">{text.report}</a>
-                      <a href={`/replay/${r.id}`} className="action-menu-item">{text.replay}</a>
+                      <a href={`${routePrefix}/report/${r.id}`} className="action-menu-item">{text.report}</a>
+                      <a href={`${routePrefix}/replay/${r.id}`} className="action-menu-item">{text.replay}</a>
                     </div>
                   </details>
                 </td>

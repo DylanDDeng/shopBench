@@ -5,17 +5,76 @@ import type { DayData } from "@/lib/types";
 import { formatYen } from "@/lib/types";
 import { DayContextPanel } from "@/components/DayContextPanel";
 import { ToolCallCard } from "@/components/ToolCallCard";
+import type { Locale } from "@/lib/i18n";
 
 interface ReplayViewProps {
   days: DayData[];
   resultId: string;
+  locale?: Locale;
 }
 
-export function ReplayView({ days }: ReplayViewProps) {
+const REPLAY_VIEW_TEXT: Record<Locale, {
+  noData: string;
+  day: string;
+  morningBrief: string;
+  toolCalls: string;
+  calls: string;
+  errors: string;
+  daySettlement: string;
+  customers: string;
+  revenue: string;
+  expenses: string;
+  netProfit: string;
+  itemsSold: string;
+  product: string;
+  qty: string;
+  expired: string;
+  noNotableActions: string;
+}> = {
+  en: {
+    noData: "No data available",
+    day: "Day",
+    morningBrief: "Morning Brief",
+    toolCalls: "Tool Calls",
+    calls: "calls",
+    errors: "errors",
+    daySettlement: "Day Settlement",
+    customers: "Customers",
+    revenue: "Revenue",
+    expenses: "Expenses",
+    netProfit: "Net Profit",
+    itemsSold: "Items sold",
+    product: "Product",
+    qty: "Qty",
+    expired: "Expired",
+    noNotableActions: "No notable actions recorded",
+  },
+  zh: {
+    noData: "暂无可用数据",
+    day: "第",
+    morningBrief: "晨间简报",
+    toolCalls: "工具调用",
+    calls: "次调用",
+    errors: "个错误",
+    daySettlement: "当日结算",
+    customers: "顾客数",
+    revenue: "收入",
+    expenses: "支出",
+    netProfit: "净利润",
+    itemsSold: "售出商品",
+    product: "商品",
+    qty: "数量",
+    expired: "过期",
+    noNotableActions: "无关键动作记录",
+  },
+};
+
+export function ReplayView({ days, locale = "en" }: ReplayViewProps) {
+  const text = REPLAY_VIEW_TEXT[locale];
   const [selectedDay, setSelectedDay] = useState(0);
   const day = days[selectedDay];
 
-  if (!day) return <div className="card"><p>No data available</p></div>;
+  if (!day) return <div className="card"><p>{text.noData}</p></div>;
 
   const errors = day.toolCalls.filter(tc => {
     return typeof tc.result === "object" && tc.result !== null && "error" in (tc.result as Record<string, unknown>);
@@ -42,9 +101,9 @@ export function ReplayView({ days }: ReplayViewProps) {
           {/* Morning Brief */}
           <div className="card" style={{ marginBottom: "1rem" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-              <h3 style={{ margin: 0 }}>Morning Brief</h3>
+              <h3 style={{ margin: 0 }}>{text.morningBrief}</h3>
               <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>
-                Day {day.day}
+                {locale === "zh" ? `第${day.day}天` : `Day ${day.day}`}
               </span>
             </div>
             <pre style={{
@@ -62,43 +121,45 @@ export function ReplayView({ days }: ReplayViewProps) {
           {/* Tool Calls */}
           <div style={{ marginBottom: "1rem" }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.75rem", marginBottom: "0.75rem" }}>
-              <h3 style={{ margin: 0 }}>Tool Calls</h3>
+              <h3 style={{ margin: 0 }}>{text.toolCalls}</h3>
               <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>
-                {day.toolCalls.length} calls
+                {locale === "zh" ? `${day.toolCalls.length}${text.calls}` : `${day.toolCalls.length} ${text.calls}`}
                 {errors.length > 0 && (
                   <span style={{ color: "var(--accent-red)", marginLeft: "0.5rem" }}>
-                    ({errors.length} error{errors.length !== 1 ? "s" : ""})
+                    {locale === "zh"
+                      ? `（${errors.length}${text.errors}）`
+                      : `(${errors.length} error${errors.length !== 1 ? "s" : ""})`}
                   </span>
                 )}
               </span>
             </div>
             {day.toolCalls.map((tc, i) => (
-              <ToolCallCard key={i} call={tc} index={i} />
+              <ToolCallCard key={i} call={tc} index={i} locale={locale} />
             ))}
           </div>
 
           {/* Settlement */}
           <div className="card" style={{ borderLeft: "3px solid var(--accent-green)" }}>
-            <h3 style={{ margin: "0 0 0.75rem", color: "var(--accent-green)" }}>Day Settlement</h3>
+            <h3 style={{ margin: "0 0 0.75rem", color: "var(--accent-green)" }}>{text.daySettlement}</h3>
             <div className="grid-4">
               <div>
-                <div className="metric-label">Customers</div>
+                <div className="metric-label">{text.customers}</div>
                 <div style={{ fontSize: "1.25rem", fontWeight: 600 }}>{day.settlement.customerCount}</div>
               </div>
               <div>
-                <div className="metric-label">Revenue</div>
+                <div className="metric-label">{text.revenue}</div>
                 <div style={{ fontSize: "1.25rem", fontWeight: 600, color: "var(--accent-blue)" }}>
                   {formatYen(day.settlement.revenue)}
                 </div>
               </div>
               <div>
-                <div className="metric-label">Expenses</div>
+                <div className="metric-label">{text.expenses}</div>
                 <div style={{ fontSize: "1.25rem", fontWeight: 600 }}>
                   {formatYen(day.settlement.expenses)}
                 </div>
               </div>
               <div>
-                <div className="metric-label">Net Profit</div>
+                <div className="metric-label">{text.netProfit}</div>
                 <div style={{
                   fontSize: "1.25rem",
                   fontWeight: 600,
@@ -112,14 +173,14 @@ export function ReplayView({ days }: ReplayViewProps) {
             {day.settlement.itemsSold.length > 0 && (
               <details style={{ marginTop: "1rem" }}>
                 <summary style={{ cursor: "pointer", fontSize: "0.875rem", color: "var(--text-muted)" }}>
-                  Items sold ({day.settlement.itemsSold.length})
+                  {text.itemsSold} ({day.settlement.itemsSold.length})
                 </summary>
                 <table style={{ marginTop: "0.5rem" }}>
                   <thead>
                     <tr>
-                      <th>Product</th>
-                      <th className="text-right">Qty</th>
-                      <th className="text-right">Revenue</th>
+                      <th>{text.product}</th>
+                      <th className="text-right">{text.qty}</th>
+                      <th className="text-right">{text.revenue}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -138,7 +199,7 @@ export function ReplayView({ days }: ReplayViewProps) {
             {day.settlement.expiredItems.length > 0 && (
               <div style={{ marginTop: "0.75rem", padding: "0.5rem", background: "rgba(239, 68, 68, 0.05)", borderRadius: "var(--radius-sm)" }}>
                 <span style={{ fontSize: "0.8125rem", color: "var(--accent-red)" }}>
-                  Expired: {day.settlement.expiredItems.map(e => `${e.productId} (${e.quantity})`).join(", ")}
+                  {text.expired}: {day.settlement.expiredItems.map(e => `${e.productId} (${e.quantity})`).join(", ")}
                 </span>
               </div>
             )}
@@ -146,7 +207,7 @@ export function ReplayView({ days }: ReplayViewProps) {
         </div>
 
         {/* Sidebar context panel */}
-        <DayContextPanel days={days} currentDay={selectedDay} />
+        <DayContextPanel days={days} currentDay={selectedDay} locale={locale} />
       </div>
     </div>
   );
