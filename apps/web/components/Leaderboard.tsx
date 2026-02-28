@@ -50,8 +50,8 @@ const LEADERBOARD_TEXT: Record<Locale, {
     grossMarginHelp: "(Revenue - COGS) / Revenue for sold items.",
     errorRate: "Tool Call Error Rate",
     errorRateHelp: "Percentage of tool calls that returned an error.",
-    profit: "30-Day Profit",
-    profitHelp: "Cumulative trend of daily net profit across the 30-day run.",
+    profit: "30-Day Net Profit Trend",
+    profitHelp: "Day-by-day net profit trend (not cumulative).",
     actions: "Actions",
     view: "View",
     report: "Report",
@@ -73,8 +73,8 @@ const LEADERBOARD_TEXT: Record<Locale, {
     grossMarginHelp: "已售商品的 (收入 - 成本) / 收入。",
     errorRate: "工具调用错误率",
     errorRateHelp: "所有工具调用中返回错误的比例。",
-    profit: "30天利润趋势",
-    profitHelp: "30天累计日净利润的变化曲线。",
+    profit: "30天净利润趋势",
+    profitHelp: "按天展示净利润变化（非累计口径）。",
     actions: "操作",
     view: "查看",
     report: "报告",
@@ -248,12 +248,8 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
             const dm = derivedMetrics[i];
             const shortModelName = r.model.split("/").pop() ?? r.model;
             const logoSrc = getModelLogo(r.model);
-            // Cumulative profit for sparkline
-            let cum = 0;
-            const profitCurve = r.metrics.dailyProfitTrend.map(p => {
-              cum += p;
-              return Math.round(cum);
-            });
+            // Day-by-day net profit (not cumulative)
+            const profitCurve = r.metrics.dailyProfitTrend.map(p => Math.round(p));
             const sparklineDelay = Math.min(i * 70, 560);
 
             return (
