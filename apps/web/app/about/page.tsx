@@ -95,7 +95,7 @@ export default function AboutPage() {
           <p>2) Start the web dashboard:</p>
           <pre className="about-code">{`pnpm --filter @shopbench/web dev`}</pre>
           <p style={{ marginBottom: 0 }}>
-            Then open the site to view Leaderboard, Compare, Report, and Replay pages.
+            Then open the site to view Leaderboard, Insights, Report, and Replay pages.
           </p>
         </section>
       </div>

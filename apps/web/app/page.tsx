@@ -86,8 +86,8 @@ export default function Home() {
 
           {results.length > 1 && (
             <div style={{ marginTop: "1.5rem", textAlign: "center" }}>
-              <a href="/compare" className="action-link" style={{ fontSize: "1rem" }}>
-                Compare All Models →
+              <a href="/insights" className="action-link" style={{ fontSize: "1rem" }}>
+                View Insights & Diagnostics →
               </a>
             </div>
           )}

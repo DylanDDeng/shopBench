@@ -10,7 +10,7 @@ export function NavBar() {
   const text = NAV_TEXT[locale];
   const normalizedPath = stripLocalePrefix(pathname);
 
-  const localeHref = (path: "/" | "/compare" | "/insights" | "/about") => {
+  const localeHref = (path: "/" | "/insights" | "/about") => {
     if (path === "/") return `/${locale}`;
     return `/${locale}${path}`;
   };
@@ -20,7 +20,6 @@ export function NavBar() {
       <div className="nav-left">
         <Link href={localeHref("/")} className="nav-brand">{text.brand}</Link>
         <Link href={localeHref("/")} className={normalizedPath === "/" ? "active" : undefined}>{text.leaderboard}</Link>
-        <Link href={localeHref("/compare")} className={normalizedPath === "/compare" ? "active" : undefined}>{text.compare}</Link>
         <Link href={localeHref("/insights")} className={normalizedPath === "/insights" ? "active" : undefined}>{text.insights}</Link>
         <Link href={localeHref("/about")} className={normalizedPath === "/about" ? "active" : undefined}>{text.about}</Link>
       </div>

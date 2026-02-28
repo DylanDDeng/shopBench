@@ -51,7 +51,7 @@ export default async function LocalizedAboutPage({ params }: { params: Promise<{
         reproduce: "快速复现",
         step1: "1) 运行一次 benchmark：",
         step2: "2) 启动 Web 看板：",
-        end: "然后打开站点查看排行榜、对比、报告和回放页面。",
+        end: "然后打开站点查看排行榜、洞察、报告和回放页面。",
       }
     : {
         title: "About ShopBench",
@@ -94,7 +94,7 @@ export default async function LocalizedAboutPage({ params }: { params: Promise<{
         reproduce: "How to Reproduce Quickly",
         step1: "1) Run one benchmark simulation:",
         step2: "2) Start the web dashboard:",
-        end: "Then open the site to view Leaderboard, Compare, Report, and Replay pages.",
+        end: "Then open the site to view Leaderboard, Insights, Report, and Replay pages.",
       };
 
   return (

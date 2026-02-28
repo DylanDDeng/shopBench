@@ -28,7 +28,6 @@ export function getLocaleSwitchPath(pathname: string, targetLocale: Locale): str
 export const NAV_TEXT: Record<Locale, {
   brand: string;
   leaderboard: string;
-  compare: string;
   insights: string;
   about: string;
   language: string;
@@ -36,7 +35,6 @@ export const NAV_TEXT: Record<Locale, {
   en: {
     brand: "ShopBench",
     leaderboard: "Leaderboard",
-    compare: "Compare",
     insights: "Insights",
     about: "About",
     language: "Language",
@@ -44,7 +42,6 @@ export const NAV_TEXT: Record<Locale, {
   zh: {
     brand: "ShopBench",
     leaderboard: "排行榜",
-    compare: "对比",
     insights: "洞察",
     about: "关于",
     language: "语言",

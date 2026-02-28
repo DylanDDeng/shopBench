@@ -25,7 +25,7 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
         lowestErrorMeta: "执行最稳定",
         bestMargin: "毛利率最佳",
         bestMarginMeta: "销售组合效率最高",
-        compareAll: "对比全部模型 →",
+        compareAll: "查看洞察与诊断 →",
       }
     : {
         title: "ShopBench Leaderboard",
@@ -41,7 +41,7 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
         lowestErrorMeta: "Most reliable execution",
         bestMargin: "Best Gross Margin",
         bestMarginMeta: "Most efficient sales mix",
-        compareAll: "Compare All Models →",
+        compareAll: "View Insights & Diagnostics →",
       };
 
   const results = getAllResults();
@@ -126,7 +126,7 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
 
           {results.length > 1 && (
             <div style={{ marginTop: "1.5rem", textAlign: "center" }}>
-              <a href={`/${locale}/compare`} className="action-link" style={{ fontSize: "1rem" }}>
+              <a href={`/${locale}/insights`} className="action-link" style={{ fontSize: "1rem" }}>
                 {text.compareAll}
               </a>
             </div>
