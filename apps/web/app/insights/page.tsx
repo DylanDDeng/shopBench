@@ -297,6 +297,13 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
   const avgInfoRatioProfitable = profitableModels.length > 0
     ? profitableModels.reduce((s, m) => s + (Number.isFinite(m.infoActionRatio) ? m.infoActionRatio : 0), 0) / profitableModels.length
     : 0;
+  const byPriceCalls = [...analyses].sort((a, b) => a.setPriceCalls - b.setPriceCalls);
+  const quartileSize = Math.max(1, Math.floor(byPriceCalls.length * 0.25));
+  const lowPriceGroup = byPriceCalls.slice(0, quartileSize);
+  const highPriceGroup = byPriceCalls.slice(-quartileSize);
+  const lowPriceMedianNetCash = median(lowPriceGroup.map(m => m.netProfit));
+  const highPriceMedianNetCash = median(highPriceGroup.map(m => m.netProfit));
+  const pricingLift = highPriceMedianNetCash - lowPriceMedianNetCash;
 
   const cashGapInsights = analyses.map((m, idx) => {
     const result = results[idx];
@@ -321,11 +328,11 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
     },
     {
       icon: "\u{1F4C8}",
-      value: `r = ${priceR.toFixed(2)}`,
-      label: isZh ? "调价频率 \u{2194} 净现金" : "Price Changes \u{2194} Net Cash",
+      value: formatYen(pricingLift),
+      label: isZh ? "高低调价组净现金中位数差" : "Net-Cash Median Lift (High vs Low Pricing)",
       description: isZh
-        ? `皮尔逊相关系数，当前为中等正相关（R²=${priceR2.toFixed(2)}）`
-        : `Pearson correlation; currently a moderate positive relationship (R²=${priceR2.toFixed(2)}).`,
+        ? `按调价次数前25% vs 后25%分组，高调价组中位净现金更高；相关系数仅作辅助（r=${priceR.toFixed(2)}, R²=${priceR2.toFixed(2)}）`
+        : `Comparing top vs bottom 25% by pricing frequency, high-pricing models show higher median net cash; correlation is auxiliary evidence only (r=${priceR.toFixed(2)}, R²=${priceR2.toFixed(2)}).`,
     },
     {
       icon: "\u{26A0}\u{FE0F}",
@@ -402,8 +409,8 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
             <strong>{profitableCount} / {analyses.length}</strong>
           </div>
           <div className="insights-intro-pill">
-            <span>{isZh ? "最强相关信号" : "Best Correlation Signal"}</span>
-            <strong>{isZh ? `调价 ↔ 净现金 (r=${priceR.toFixed(2)})` : `Pricing ↔ Net Cash (r=${priceR.toFixed(2)})`}</strong>
+            <span>{isZh ? "可观察相关信号（非因果）" : "Observable Correlation (Non-causal)"}</span>
+            <strong>{isZh ? `调价 ↔ 净现金 (r=${priceR.toFixed(2)}, R²=${priceR2.toFixed(2)})` : `Pricing ↔ Net Cash (r=${priceR.toFixed(2)}, R²=${priceR2.toFixed(2)})`}</strong>
           </div>
           {strongestGroup ? (
             <div className="insights-intro-pill">
