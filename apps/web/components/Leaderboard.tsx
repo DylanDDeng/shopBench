@@ -33,6 +33,13 @@ const LEADERBOARD_TEXT: Record<Locale, {
   view: string;
   report: string;
   replay: string;
+  metricGuideTitle: string;
+  metricGuideIntro: string;
+  metricGuideNetCash: string;
+  metricGuideNetProfit: string;
+  metricGuideGrossProfit: string;
+  metricGuideGrossMargin: string;
+  metricGuideInventoryNote: string;
 }> = {
   en: {
     rank: "Rank",
@@ -49,6 +56,13 @@ const LEADERBOARD_TEXT: Record<Locale, {
     view: "View",
     report: "Report",
     replay: "Replay",
+    metricGuideTitle: "Metric definitions (important)",
+    metricGuideIntro: "ShopBench ranking is based on 30-Day Net Cash. Do not treat gross margin as the final score.",
+    metricGuideNetCash: "30-Day Net Cash = final cash - starting cash - outstanding loans (this is the ranking metric).",
+    metricGuideNetProfit: "Daily Net Profit = revenue - COGS - wages - rent - loan interest - marketing spend - other expenses.",
+    metricGuideGrossProfit: "Daily Gross Profit = revenue - COGS of sold items; it excludes wages/rent/marketing and cash timing effects.",
+    metricGuideGrossMargin: "Gross Margin is a ratio, not absolute cash generated.",
+    metricGuideInventoryNote: "End-of-run inventory is not included in final score in this 30-day setup.",
   },
   zh: {
     rank: "排名",
@@ -65,6 +79,13 @@ const LEADERBOARD_TEXT: Record<Locale, {
     view: "查看",
     report: "报告",
     replay: "回放",
+    metricGuideTitle: "指标口径说明（重要）",
+    metricGuideIntro: "ShopBench 排名依据是「30天净现金」，不要把毛利率当成最终得分。",
+    metricGuideNetCash: "30天净现金 = 期末现金 - 初始现金 - 未偿贷款（该指标用于排名）。",
+    metricGuideNetProfit: "每日净利润 = 收入 - 销售成本 - 人工 - 房租 - 贷款利息 - 营销支出 - 其他费用。",
+    metricGuideGrossProfit: "每日毛利润 = 收入 - 已售商品成本；不含人工/房租/营销等费用，也不反映现金时点。",
+    metricGuideGrossMargin: "毛利率是比例指标，不等于实际回笼现金规模。",
+    metricGuideInventoryNote: "在当前 30 天评测中，期末库存不计入最终得分。",
   },
 };
 
@@ -175,6 +196,17 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
 
   return (
     <div className="card leaderboard-table">
+      <details className="metrics-guide">
+        <summary>{text.metricGuideTitle}</summary>
+        <p className="metrics-guide-intro">{text.metricGuideIntro}</p>
+        <ul className="metrics-guide-list">
+          <li>{text.metricGuideNetCash}</li>
+          <li>{text.metricGuideNetProfit}</li>
+          <li>{text.metricGuideGrossProfit}</li>
+          <li>{text.metricGuideGrossMargin}</li>
+          <li>{text.metricGuideInventoryNote}</li>
+        </ul>
+      </details>
       <table>
         <thead>
           <tr>

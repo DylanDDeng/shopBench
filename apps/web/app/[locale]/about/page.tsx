@@ -38,6 +38,11 @@ export default async function LocalizedAboutPage({ params }: { params: Promise<{
         term1: "收入扩张能力：模型能拉起多少销售规模。",
         term2: "会计毛利润：已售商品收入减去销售成本。",
         term3: "现金转化能力：投入能否及时回到现金。",
+        methodology: "指标口径速览（建议先看）",
+        m1: "排名主指标：30天净现金（期末现金 - 初始现金 - 未偿贷款）。",
+        m2: "每日净利润：收入 - 销售成本 - 人工 - 房租 - 贷款利息 - 营销支出 - 其他费用。",
+        m3: "每日毛利润：商品交易层指标（收入-销售成本），不含人工/房租/营销等费用。",
+        m4: "期末库存：当前 30 天评测不计入最终得分，避免“囤货刷分”。",
         capabilities: "评估能力维度",
         c1: "执行可靠性：工具调用有效且错误率低。",
         c2: "库存与现金控制：避免压货和现金占用。",
@@ -76,6 +81,11 @@ export default async function LocalizedAboutPage({ params }: { params: Promise<{
         term1: "Revenue scaling ability: how much sales volume the model can generate.",
         term2: "Accounting gross profit: revenue minus COGS of sold items.",
         term3: "Cash conversion ability: whether spending is converted back into cash in time.",
+        methodology: "Metric Interpretation Quick Guide",
+        m1: "Primary ranking metric: 30-Day Net Cash (final cash - starting cash - outstanding loans).",
+        m2: "Daily Net Profit: revenue - COGS - wages - rent - loan interest - marketing spend - other expenses.",
+        m3: "Daily Gross Profit: product-trade metric (revenue - COGS), excluding wages/rent/marketing.",
+        m4: "End inventory: not counted in final score in the current 30-day setup (to avoid stockpiling for score inflation).",
         capabilities: "What Capabilities It Evaluates",
         c1: "Execution reliability: valid and consistent tool use with low error rate.",
         c2: "Inventory and cash control: avoid overstocking and cash lock-up.",
@@ -134,6 +144,16 @@ export default async function LocalizedAboutPage({ params }: { params: Promise<{
               <li>{text.term3}</li>
             </ul>
           </div>
+        </section>
+
+        <section className="card">
+          <h3>{text.methodology}</h3>
+          <ul className="about-step-list">
+            <li>{text.m1}</li>
+            <li>{text.m2}</li>
+            <li>{text.m3}</li>
+            <li>{text.m4}</li>
+          </ul>
         </section>
 
         <section className="card">

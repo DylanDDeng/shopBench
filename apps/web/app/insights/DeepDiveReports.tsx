@@ -238,6 +238,11 @@ export function DeepDiveReports({ reports, locale = "en" }: DeepDiveReportsProps
               </button>
             </div>
           </div>
+          <p className="deep-dive-paragraph" style={{ marginTop: 0, marginBottom: "0.85rem" }}>
+            {isZh
+              ? "口径说明：净现金轨迹用于最终评分；每日净利润（收入-销售成本-人工-房租-贷款利息-营销-其他）与每日毛利润（收入-销售成本）用于解释经营质量；库存轨迹仅用于观察运营状态，不计入最终得分。"
+              : "Methodology note: Net Cash Trajectory follows the final ranking metric; Daily Net Profit (revenue - COGS - wages - rent - loan interest - marketing - other) and Daily Gross Profit (revenue - COGS) explain operating quality; Inventory Trajectory is observational and not part of final score."}
+          </p>
 
           {evidenceTab === "trajectory" && (
             <TrendLineChart

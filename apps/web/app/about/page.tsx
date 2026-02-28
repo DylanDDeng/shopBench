@@ -69,6 +69,16 @@ export default function AboutPage() {
         </section>
 
         <section className="card">
+          <h3>Metric Interpretation Quick Guide</h3>
+          <ul className="about-step-list">
+            <li><strong>Primary ranking metric:</strong> 30-Day Net Cash (final cash - starting cash - outstanding loans).</li>
+            <li><strong>Daily Net Profit:</strong> revenue - COGS - wages - rent - loan interest - marketing spend - other expenses.</li>
+            <li><strong>Daily Gross Profit:</strong> product-trade metric (revenue - COGS), excluding wages/rent/marketing.</li>
+            <li><strong>End inventory:</strong> not counted in final score in the current 30-day setup (to avoid stockpiling for score inflation).</li>
+          </ul>
+        </section>
+
+        <section className="card">
           <h3>What Capabilities It Evaluates</h3>
           <ul className="about-step-list">
             <li><strong>Execution reliability:</strong> valid and consistent tool use with low error rate.</li>
