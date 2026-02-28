@@ -23,6 +23,8 @@ const LEADERBOARD_TEXT: Record<Locale, {
   model: string;
   netCash: string;
   netCashHelp: string;
+  changePct: string;
+  changePctHelp: string;
   grossMargin: string;
   grossMarginHelp: string;
   errorRate: string;
@@ -46,6 +48,8 @@ const LEADERBOARD_TEXT: Record<Locale, {
     model: "Model",
     netCash: "30-Day Net Cash (¥)",
     netCashHelp: "Final cash minus starting cash minus outstanding loans; this is the ranking metric.",
+    changePct: "30-Day Change %",
+    changePctHelp: "Final-cash return over 30 days: (final cash - starting cash) / starting cash.",
     grossMargin: "Gross Margin",
     grossMarginHelp: "(Revenue - COGS) / Revenue for sold items.",
     errorRate: "Tool Call Error Rate",
@@ -69,6 +73,8 @@ const LEADERBOARD_TEXT: Record<Locale, {
     model: "模型",
     netCash: "30天净现金 (¥)",
     netCashHelp: "期末现金减去初始现金和未偿贷款；该指标用于最终排名。",
+    changePct: "30天涨跌幅",
+    changePctHelp: "30天最终现金回报率：（期末现金 - 初始现金）/ 初始现金。",
     grossMargin: "毛利率",
     grossMarginHelp: "已售商品的 (收入 - 成本) / 收入。",
     errorRate: "工具调用错误率",
@@ -119,6 +125,14 @@ function getRankBadge(rank: number, locale: Locale) {
   if (rank === 1) return <span className="badge badge-silver">2nd</span>;
   if (rank === 2) return <span className="badge badge-bronze">3rd</span>;
   return <span className="badge-rank">{rank + 1}</span>;
+}
+
+function formatSignedPct(value: number): string {
+  const pct = value * 100;
+  const abs = Math.abs(pct).toFixed(1);
+  if (pct > 0.0001) return `+${abs}%`;
+  if (pct < -0.0001) return `-${abs}%`;
+  return "0.0%";
 }
 
 function ModelNameMarquee({ name }: { name: string }) {
@@ -221,6 +235,13 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
             </th>
             <th className="text-center">
               <MetricInfo
+                label={text.changePct}
+                help={text.changePctHelp}
+                locale={locale}
+              />
+            </th>
+            <th className="text-center">
+              <MetricInfo
                 label={text.grossMargin}
                 help={text.grossMarginHelp}
                 locale={locale}
@@ -248,6 +269,9 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
             const dm = derivedMetrics[i];
             const shortModelName = r.model.split("/").pop() ?? r.model;
             const logoSrc = getModelLogo(r.model);
+            const startingCash = r.metrics.finalCash - r.finalScore - r.metrics.outstandingLoans;
+            const cashDelta = r.metrics.finalCash - startingCash;
+            const changePct = startingCash !== 0 ? (cashDelta / startingCash) : 0;
             // Day-by-day net profit (not cumulative)
             const profitCurve = r.metrics.dailyProfitTrend.map(p => Math.round(p));
             const sparklineDelay = Math.min(i * 70, 560);
@@ -272,6 +296,9 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
                 </td>
                 <td className={`text-center ${r.finalScore >= 0 ? "profit-positive" : "profit-negative"}`}>
                   {formatYen(r.finalScore)}
+                </td>
+                <td className={`text-center ${changePct >= 0 ? "profit-positive" : "profit-negative"}`}>
+                  {formatSignedPct(changePct)}
                 </td>
                 <td className="text-center">{formatPct(dm.grossMargin)}</td>
                 <td className="text-center">{formatPct(dm.errorRate)}</td>
