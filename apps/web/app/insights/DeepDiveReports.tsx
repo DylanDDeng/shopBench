@@ -30,6 +30,7 @@ interface DeepDiveCharts {
   trendData: Record<string, string | number>[];
   inventoryData: Record<string, string | number>[];
   grossProfitData: Record<string, string | number>[];
+  netProfitData: Record<string, string | number>[];
   radarData: Record<string, string | number>[];
   toolMixData: Record<string, string | number>[];
 }
@@ -74,7 +75,7 @@ interface DeepDiveReportsProps {
   locale?: Locale;
 }
 
-type EvidenceTab = "trajectory" | "inventory" | "grossprofit" | "radar" | "toolmix";
+type EvidenceTab = "trajectory" | "inventory" | "grossprofit" | "netprofit" | "radar" | "toolmix";
 
 export function DeepDiveReports({ reports, locale = "en" }: DeepDiveReportsProps) {
   const isZh = locale === "zh";
@@ -216,6 +217,13 @@ export function DeepDiveReports({ reports, locale = "en" }: DeepDiveReportsProps
               </button>
               <button
                 type="button"
+                className={`deep-dive-tab ${evidenceTab === "netprofit" ? "active" : ""}`}
+                onClick={() => setEvidenceTab("netprofit")}
+              >
+                {isZh ? "每日净利润" : "Daily Net Profit"}
+              </button>
+              <button
+                type="button"
                 className={`deep-dive-tab ${evidenceTab === "radar" ? "active" : ""}`}
                 onClick={() => setEvidenceTab("radar")}
               >
@@ -277,6 +285,28 @@ export function DeepDiveReports({ reports, locale = "en" }: DeepDiveReportsProps
           {evidenceTab === "grossprofit" && (
             <TrendLineChart
               data={report.charts.grossProfitData}
+              xKey="day"
+              series={[
+                {
+                  key: report.chartKeys.model,
+                  name: report.displayName,
+                  color: report.colors.model,
+                  type: "area",
+                },
+                {
+                  key: report.chartKeys.reference,
+                  name: report.comparison.referenceName,
+                  color: report.colors.reference,
+                },
+              ]}
+              height={320}
+              showZeroLine
+            />
+          )}
+
+          {evidenceTab === "netprofit" && (
+            <TrendLineChart
+              data={report.charts.netProfitData}
               xKey="day"
               series={[
                 {

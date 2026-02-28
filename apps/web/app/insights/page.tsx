@@ -1261,6 +1261,19 @@ function buildDeepDiveReports({
       });
     }
 
+    const netProfitData: Record<string, string | number>[] = [];
+    const netProfitDays = Math.max(
+      result.metrics.dailyProfitTrend.length,
+      referenceResult.metrics.dailyProfitTrend.length,
+    );
+    for (let day = 0; day < netProfitDays; day++) {
+      netProfitData.push({
+        day: day + 1,
+        [modelKey]: Math.round(result.metrics.dailyProfitTrend[day] ?? 0),
+        [referenceKey]: Math.round(referenceResult.metrics.dailyProfitTrend[day] ?? 0),
+      });
+    }
+
     const radarData: Record<string, string | number>[] = [
       {
         metric: isZh ? "净现金" : "Net Cash",
@@ -1334,6 +1347,7 @@ function buildDeepDiveReports({
         trendData,
         inventoryData,
         grossProfitData,
+        netProfitData,
         radarData,
         toolMixData,
       },
