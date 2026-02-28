@@ -154,6 +154,21 @@ function ModelNameMarquee({ name }: { name: string }) {
   );
 }
 
+function getModelLogo(model: string): string | null {
+  const key = model.toLowerCase();
+  if (key.includes("claude")) return "/leaderboard/claude-color.svg";
+  if (key.includes("stepfun") || key.includes("step-")) return "/leaderboard/stepfun-color.svg";
+  if (key.includes("gemini")) return "/leaderboard/gemini-color.svg";
+  if (key.includes("deepseek")) return "/leaderboard/deepseek-color.svg";
+  if (key.includes("minimax")) return "/leaderboard/minimax-color.svg";
+  if (key.includes("glm") || key.includes("zai")) return "/leaderboard/zai.svg";
+  if (key.includes("qwen")) return "/leaderboard/qwen-color.svg";
+  if (key.includes("gpt") || key.includes("openai")) return "/leaderboard/openai.svg";
+  if (key.includes("grok")) return "/leaderboard/grok.svg";
+  if (key.includes("kimi") || key.includes("k2.5")) return "/leaderboard/kimi.svg";
+  return null;
+}
+
 export function Leaderboard({ results, derivedMetrics, locale = "en" }: LeaderboardProps) {
   const text = LEADERBOARD_TEXT[locale];
   const routePrefix = `/${locale}`;
@@ -200,6 +215,7 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
           {results.map((r, i) => {
             const dm = derivedMetrics[i];
             const shortModelName = r.model.split("/").pop() ?? r.model;
+            const logoSrc = getModelLogo(r.model);
             // Cumulative profit for sparkline
             let cum = 0;
             const profitCurve = r.metrics.dailyProfitTrend.map(p => {
@@ -212,7 +228,19 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
               <tr key={r.id}>
                 <td>{getRankBadge(i, locale)}</td>
                 <td className="model-cell">
-                  <ModelNameMarquee name={shortModelName} />
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
+                    {logoSrc ? (
+                      <img
+                        src={logoSrc}
+                        alt=""
+                        aria-hidden
+                        style={{ width: 18, height: 18, flex: "0 0 auto", objectFit: "contain" }}
+                      />
+                    ) : null}
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <ModelNameMarquee name={shortModelName} />
+                    </div>
+                  </div>
                 </td>
                 <td className={`text-center ${r.finalScore >= 0 ? "profit-positive" : "profit-negative"}`}>
                   {formatYen(r.finalScore)}
