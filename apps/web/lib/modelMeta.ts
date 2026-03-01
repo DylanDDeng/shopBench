@@ -8,6 +8,8 @@ export interface ModelMeta {
 }
 
 const MODEL_ID_META: Record<string, ModelMeta> = {
+  "gpt-5.3-codex-xhigh": { provider: "openai", region: "us", openness: "closed" },
+  "gpt-5.3-xhigh": { provider: "openai", region: "us", openness: "closed" },
   "gpt-5.3-codex-xhgih": { provider: "openai", region: "us", openness: "closed" },
   "gpt-5.3-xhgih": { provider: "openai", region: "us", openness: "closed" },
 };

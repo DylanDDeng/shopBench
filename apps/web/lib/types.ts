@@ -317,7 +317,8 @@ const MODEL_DISPLAY_NAMES: Record<string, string> = {
 };
 
 export function getModelDisplayName(model: string): string {
-  return MODEL_DISPLAY_NAMES[model] ?? model.split("/").pop() ?? model;
+  const raw = MODEL_DISPLAY_NAMES[model] ?? model.split("/").pop() ?? model;
+  return raw.replace(/xhgih/gi, "xhigh");
 }
 
 const MODEL_COLORS: string[] = [

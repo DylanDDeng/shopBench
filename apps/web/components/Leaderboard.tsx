@@ -274,7 +274,7 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
     () =>
       results.map((r, i) => {
         const dm = derivedMetrics[i];
-        const shortModelName = r.model.split("/").pop() ?? r.model;
+        const shortModelName = (r.model.split("/").pop() ?? r.model).replace(/xhgih/gi, "xhigh");
         const meta = getModelMeta(r.model);
         return { r, dm, shortModelName, meta };
       }),

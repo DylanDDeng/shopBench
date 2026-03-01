@@ -12,9 +12,11 @@ const ROOT = resolve(__dirname, "../../..");
 type ReasoningEffort = "low" | "medium" | "high" | "xhigh";
 
 const MODEL_PRESETS: Record<string, { openrouterModel: string; reasoningEffort: ReasoningEffort }> = {
-  // Alias: show as custom label, but call OpenRouter with codex ID at xhigh effort
+  // Preferred alias: show as custom label, but call OpenRouter with codex ID at xhigh effort
+  "gpt-5.3-codex-xhigh": { openrouterModel: "openai/gpt-5.3-codex", reasoningEffort: "xhigh" },
+  "gpt-5.3-xhigh": { openrouterModel: "openai/gpt-5.3-codex", reasoningEffort: "xhigh" },
+  // Backward-compatible typo aliases
   "gpt-5.3-codex-xhgih": { openrouterModel: "openai/gpt-5.3-codex", reasoningEffort: "xhigh" },
-  // Backward-compatible alias
   "gpt-5.3-xhgih": { openrouterModel: "openai/gpt-5.3-codex", reasoningEffort: "xhigh" },
 };
 
