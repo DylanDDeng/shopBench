@@ -589,6 +589,25 @@ a:hover {
   color: #C15F3C;
 }
 
+.top-signal-overall-gpt {
+  border-color: #111827;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 92%);
+}
+
+.top-signal-overall-gpt .top-signal-label,
+.top-signal-overall-gpt .top-signal-value {
+  color: #111827;
+}
+
+.top-signal-overall-gpt .top-signal-meta {
+  color: #475569;
+}
+
+.top-signal-overall-gpt .top-signal-mark {
+  opacity: 0.2;
+  filter: grayscale(1) contrast(1.15);
+}
+
 .top-signal-overall .top-signal-mark,
 .top-signal-claude .top-signal-mark {
   opacity: 0.14;

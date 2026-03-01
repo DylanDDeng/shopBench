@@ -8,7 +8,12 @@ import { randomUUID } from "node:crypto";
 
 export interface RunConfig {
   scenario: ScenarioConfig;
+  // Display name stored in result.model (used by leaderboard/report)
   model: string;
+  // Actual OpenRouter model ID used for API calls; defaults to `model`
+  openrouterModel?: string;
+  // Optional reasoning effort override for reasoning-enabled models
+  reasoningEffort?: "low" | "medium" | "high" | "xhigh";
   apiKey: string;
   baseUrl?: string;
   verbose?: boolean;
@@ -54,7 +59,7 @@ Think strategically. Every decision counts.`;
 }
 
 export async function runSimulation(config: RunConfig): Promise<SimulationResult> {
-  const { scenario, model, apiKey, baseUrl, verbose } = config;
+  const { scenario, model, openrouterModel, reasoningEffort, apiKey, baseUrl, verbose } = config;
 
   // Merge default events if scenario has none
   const fullScenario: ScenarioConfig = {
@@ -63,7 +68,12 @@ export async function runSimulation(config: RunConfig): Promise<SimulationResult
   };
 
   const world = new World(fullScenario);
-  const client = new OpenRouterClient({ apiKey, model, baseUrl });
+  const client = new OpenRouterClient({
+    apiKey,
+    model: openrouterModel ?? model,
+    baseUrl,
+    reasoningEffort,
+  });
   const allDayRecords: DayRecord[] = [];
 
   const log = verbose ? console.log : () => {};

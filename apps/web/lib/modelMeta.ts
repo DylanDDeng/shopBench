@@ -7,6 +7,11 @@ export interface ModelMeta {
   openness: ModelOpenness;
 }
 
+const MODEL_ID_META: Record<string, ModelMeta> = {
+  "gpt-5.3-codex-xhgih": { provider: "openai", region: "us", openness: "closed" },
+  "gpt-5.3-xhgih": { provider: "openai", region: "us", openness: "closed" },
+};
+
 const PROVIDER_META: Record<string, Omit<ModelMeta, "provider">> = {
   "anthropic": { region: "us", openness: "closed" },
   "openai": { region: "us", openness: "closed" },
@@ -23,8 +28,17 @@ const PROVIDER_META: Record<string, Omit<ModelMeta, "provider">> = {
 };
 
 export function getModelMeta(modelId: string): ModelMeta {
-  const provider = (modelId.split("/")[0] ?? "").toLowerCase();
+  const normalizedId = modelId.toLowerCase();
+  const direct = MODEL_ID_META[normalizedId];
+  if (direct) return direct;
+
+  const provider = (normalizedId.split("/")[0] ?? "").toLowerCase();
   const known = PROVIDER_META[provider];
   if (known) return { provider, ...known };
+
+  if (normalizedId.startsWith("gpt-")) {
+    return { provider: "openai", region: "us", openness: "closed" };
+  }
+
   return { provider: provider || "unknown", region: "unknown", openness: "unknown" };
 }

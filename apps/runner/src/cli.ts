@@ -9,6 +9,14 @@ import type { ScenarioConfig } from "@shopbench/engine";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "../../..");
+type ReasoningEffort = "low" | "medium" | "high" | "xhigh";
+
+const MODEL_PRESETS: Record<string, { openrouterModel: string; reasoningEffort: ReasoningEffort }> = {
+  // Alias: show as custom label, but call OpenRouter with codex ID at xhigh effort
+  "gpt-5.3-codex-xhgih": { openrouterModel: "openai/gpt-5.3-codex", reasoningEffort: "xhigh" },
+  // Backward-compatible alias
+  "gpt-5.3-xhgih": { openrouterModel: "openai/gpt-5.3-codex", reasoningEffort: "xhigh" },
+};
 
 function usage() {
   console.log(`
@@ -19,6 +27,8 @@ Usage:
 
 Options:
   --model, -m     Model ID (e.g. "openai/gpt-4o", "anthropic/claude-3.5-sonnet")
+  --openrouter-model  Actual OpenRouter model ID to call (defaults to --model)
+  --reasoning-effort  Reasoning effort: low | medium | high | xhigh
   --scenario, -s  Scenario file path (default: scenarios/base.json)
   --api-key, -k   OpenRouter API key (or set OPENROUTER_API_KEY env var)
   --base-url      OpenRouter base URL (default: https://openrouter.ai/api/v1)
@@ -48,6 +58,18 @@ async function main() {
   if (!model) {
     console.error("Error: --model is required");
     process.exit(1);
+  }
+  const preset = MODEL_PRESETS[model.toLowerCase()];
+  const openrouterModel = getArg(["--openrouter-model"]) ?? preset?.openrouterModel ?? model;
+  const effortArg = getArg(["--reasoning-effort"]);
+  let reasoningEffort: ReasoningEffort | undefined = preset?.reasoningEffort;
+  if (effortArg) {
+    const normalized = effortArg.toLowerCase();
+    if (normalized !== "low" && normalized !== "medium" && normalized !== "high" && normalized !== "xhigh") {
+      console.error(`Error: invalid --reasoning-effort "${effortArg}". Use low|medium|high|xhigh.`);
+      process.exit(1);
+    }
+    reasoningEffort = normalized as ReasoningEffort;
   }
 
   const apiKey = getArg(["--api-key", "-k"]) ?? process.env.OPENROUTER_API_KEY;
@@ -79,6 +101,12 @@ async function main() {
 
   console.log(`ShopBench v0.1.0`);
   console.log(`Model: ${model}`);
+  if (openrouterModel !== model) {
+    console.log(`OpenRouter model: ${openrouterModel}`);
+  }
+  if (reasoningEffort) {
+    console.log(`Reasoning effort: ${reasoningEffort}`);
+  }
   console.log(`Scenario: ${scenario.name} (${scenario.totalDays} days)`);
   console.log(`Starting cash: ¥${scenario.startingCash}`);
   console.log(`─────────────────────────────────`);
@@ -86,6 +114,8 @@ async function main() {
   const result = await runSimulation({
     scenario,
     model,
+    openrouterModel,
+    reasoningEffort,
     apiKey,
     baseUrl,
     verbose,

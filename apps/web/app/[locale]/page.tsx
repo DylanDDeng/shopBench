@@ -3,6 +3,21 @@ import { getAllResults, computeDerivedMetrics, formatYen, getModelDisplayName } 
 import { Leaderboard } from "@/components/Leaderboard";
 import { isLocale } from "@/lib/i18n";
 
+function getModelLogo(model: string): string | null {
+  const key = model.toLowerCase();
+  if (key.includes("claude")) return "/leaderboard/claude-color.svg";
+  if (key.includes("stepfun") || key.includes("step-")) return "/leaderboard/stepfun-color.svg";
+  if (key.includes("gemini")) return "/leaderboard/gemini-color.svg";
+  if (key.includes("deepseek")) return "/leaderboard/deepseek-color.svg";
+  if (key.includes("minimax")) return "/leaderboard/minimax-color.svg";
+  if (key.includes("glm") || key.includes("zai")) return "/leaderboard/zai.svg";
+  if (key.includes("qwen")) return "/leaderboard/qwen-color.svg";
+  if (key.includes("gpt") || key.includes("openai")) return "/leaderboard/openai.svg";
+  if (key.includes("grok")) return "/leaderboard/grok.svg";
+  if (key.includes("kimi") || key.includes("k2.5")) return "/leaderboard/kimi.svg";
+  return null;
+}
+
 export default async function LocaleHomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
 
@@ -48,6 +63,9 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
   const derivedMetrics = results.map(r => computeDerivedMetrics(r));
 
   const best = results[0];
+  const bestModelName = best ? getModelDisplayName(best.model) : "–";
+  const bestModelLogo = best ? getModelLogo(best.model) : null;
+  const bestIsGpt = !!best && (best.model.toLowerCase().includes("gpt") || best.model.toLowerCase().includes("openai"));
   const lowestErrorRateModel = derivedMetrics.length > 0
     ? getModelDisplayName(
         results[
@@ -87,12 +105,15 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
       ) : (
         <>
           <section className="top-signals" aria-label={text.topSignals} style={{ marginBottom: "1.25rem" }}>
-            <article className="top-signal top-signal-overall" title={best ? getModelDisplayName(best.model) : "–"}>
+            <article
+              className={`top-signal top-signal-overall${bestIsGpt ? " top-signal-overall-gpt" : ""}`}
+              title={bestModelName}
+            >
               <div className="top-signal-mark" aria-hidden>
-                <img src="/leaderboard/claude-color.svg" alt="" />
+                {bestModelLogo ? <img src={bestModelLogo} alt="" /> : "★"}
               </div>
               <p className="top-signal-label">{text.overallWinner}</p>
-              <p className="top-signal-value">{best ? getModelDisplayName(best.model) : "–"}</p>
+              <p className="top-signal-value">{bestModelName}</p>
               <p className="top-signal-meta">{text.overallWinnerMeta}</p>
             </article>
 

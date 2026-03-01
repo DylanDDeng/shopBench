@@ -4,6 +4,7 @@ export interface OpenRouterConfig {
   apiKey: string;
   model: string;
   baseUrl?: string;
+  reasoningEffort?: "low" | "medium" | "high" | "xhigh";
 }
 
 interface Message {
@@ -73,10 +74,12 @@ export class OpenRouterClient {
   private config: OpenRouterConfig;
   private totalTokens = 0;
   private reasoning: boolean;
+  private reasoningEffort?: "low" | "medium" | "high" | "xhigh";
 
   constructor(config: OpenRouterConfig) {
     this.config = config;
-    this.reasoning = needsReasoning(config.model);
+    this.reasoningEffort = config.reasoningEffort;
+    this.reasoning = needsReasoning(config.model) || Boolean(config.reasoningEffort);
   }
 
   async chat(messages: Message[], maxRetries = 3): Promise<ChatResponse> {
@@ -91,7 +94,11 @@ export class OpenRouterClient {
 
     // Models in REASONING_MODELS require this parameter.
     if (this.reasoning) {
-      body.reasoning = { enabled: true };
+      const reasoningBody: { enabled: true; effort?: "low" | "medium" | "high" | "xhigh" } = { enabled: true };
+      if (this.reasoningEffort) {
+        reasoningBody.effort = this.reasoningEffort;
+      }
+      body.reasoning = reasoningBody;
     }
 
     let lastError: Error | null = null;
