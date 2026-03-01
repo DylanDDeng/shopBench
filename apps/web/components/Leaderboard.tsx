@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { SimulationResult, DerivedMetrics } from "@/lib/types";
 import { formatYen, formatPct } from "@/lib/types";
 import type { Locale } from "@/lib/i18n";
+import { getModelMeta, type ModelOpenness, type ModelRegion } from "@/lib/modelMeta";
 import { SparklineCell } from "./SparklineCell";
 
 interface LeaderboardProps {
@@ -42,6 +43,21 @@ const LEADERBOARD_TEXT: Record<Locale, {
   metricGuideGrossProfit: string;
   metricGuideGrossMargin: string;
   metricGuideInventoryNote: string;
+  filterTitle: string;
+  filterOpenness: string;
+  filterRegion: string;
+  filterSearch: string;
+  filterAll: string;
+  filterOpen: string;
+  filterClosed: string;
+  filterUnknown: string;
+  filterRegionCn: string;
+  filterRegionUs: string;
+  filterRegionOther: string;
+  filterRegionUnknown: string;
+  filterReset: string;
+  filterMatchCount: string;
+  filterNoMatch: string;
 }> = {
   en: {
     rank: "Rank",
@@ -67,6 +83,21 @@ const LEADERBOARD_TEXT: Record<Locale, {
     metricGuideGrossProfit: "Daily Gross Profit = revenue - COGS of sold items; it excludes wages/rent/marketing and cash timing effects.",
     metricGuideGrossMargin: "Gross Margin is a ratio, not absolute cash generated.",
     metricGuideInventoryNote: "End-of-run inventory is not included in final score in this 30-day setup.",
+    filterTitle: "Model filters",
+    filterOpenness: "Openness",
+    filterRegion: "Region",
+    filterSearch: "Search model",
+    filterAll: "All",
+    filterOpen: "Open-source",
+    filterClosed: "Closed-source",
+    filterUnknown: "Unknown",
+    filterRegionCn: "China",
+    filterRegionUs: "United States",
+    filterRegionOther: "Other",
+    filterRegionUnknown: "Unknown",
+    filterReset: "Reset",
+    filterMatchCount: "Showing",
+    filterNoMatch: "No models match current filters.",
   },
   zh: {
     rank: "排名",
@@ -92,6 +123,21 @@ const LEADERBOARD_TEXT: Record<Locale, {
     metricGuideGrossProfit: "每日毛利润 = 收入 - 已售商品成本；不含人工/房租/营销等费用，也不反映现金时点。",
     metricGuideGrossMargin: "毛利率是比例指标，不等于实际回笼现金规模。",
     metricGuideInventoryNote: "在当前 30 天评测中，期末库存不计入最终得分。",
+    filterTitle: "模型筛选",
+    filterOpenness: "授权",
+    filterRegion: "地区",
+    filterSearch: "搜索模型",
+    filterAll: "全部",
+    filterOpen: "开源",
+    filterClosed: "闭源",
+    filterUnknown: "未知",
+    filterRegionCn: "中国",
+    filterRegionUs: "美国",
+    filterRegionOther: "其他",
+    filterRegionUnknown: "未知",
+    filterReset: "重置",
+    filterMatchCount: "当前显示",
+    filterNoMatch: "当前筛选下没有匹配模型。",
   },
 };
 
@@ -204,9 +250,49 @@ function getModelLogo(model: string): string | null {
   return null;
 }
 
+function getOpennessLabel(openness: ModelOpenness, text: typeof LEADERBOARD_TEXT[Locale]) {
+  if (openness === "open") return text.filterOpen;
+  if (openness === "closed") return text.filterClosed;
+  return text.filterUnknown;
+}
+
+function getRegionLabel(region: ModelRegion, text: typeof LEADERBOARD_TEXT[Locale]) {
+  if (region === "cn") return text.filterRegionCn;
+  if (region === "us") return text.filterRegionUs;
+  if (region === "other") return text.filterRegionOther;
+  return text.filterRegionUnknown;
+}
+
 export function Leaderboard({ results, derivedMetrics, locale = "en" }: LeaderboardProps) {
   const text = LEADERBOARD_TEXT[locale];
   const routePrefix = `/${locale}`;
+  const [opennessFilter, setOpennessFilter] = useState<ModelOpenness | "all">("all");
+  const [regionFilter, setRegionFilter] = useState<ModelRegion | "all">("all");
+  const [query, setQuery] = useState("");
+
+  const rows = useMemo(
+    () =>
+      results.map((r, i) => {
+        const dm = derivedMetrics[i];
+        const shortModelName = r.model.split("/").pop() ?? r.model;
+        const meta = getModelMeta(r.model);
+        return { r, dm, shortModelName, meta };
+      }),
+    [results, derivedMetrics],
+  );
+
+  const filteredRows = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return rows.filter(({ r, shortModelName, meta }) => {
+      if (opennessFilter !== "all" && meta.openness !== opennessFilter) return false;
+      if (regionFilter !== "all" && meta.region !== regionFilter) return false;
+      if (!normalizedQuery) return true;
+      return (
+        shortModelName.toLowerCase().includes(normalizedQuery) ||
+        r.model.toLowerCase().includes(normalizedQuery)
+      );
+    });
+  }, [rows, opennessFilter, regionFilter, query]);
 
   return (
     <div className="card leaderboard-table">
@@ -221,6 +307,76 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
           <li>{text.metricGuideInventoryNote}</li>
         </ul>
       </details>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(160px, 1fr) minmax(150px, 1fr) minmax(170px, 1.2fr) auto",
+          gap: "0.6rem",
+          alignItems: "end",
+          margin: "0.85rem 0 0.55rem",
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginBottom: 4 }}>{text.filterOpenness}</div>
+          <select
+            value={opennessFilter}
+            onChange={e => setOpennessFilter(e.target.value as ModelOpenness | "all")}
+            style={{ width: "100%", border: "1px solid var(--border-primary)", borderRadius: "8px", height: "34px", padding: "0 10px", background: "var(--bg-card)" }}
+          >
+            <option value="all">{text.filterAll}</option>
+            <option value="open">{text.filterOpen}</option>
+            <option value="closed">{text.filterClosed}</option>
+            <option value="unknown">{text.filterUnknown}</option>
+          </select>
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginBottom: 4 }}>{text.filterRegion}</div>
+          <select
+            value={regionFilter}
+            onChange={e => setRegionFilter(e.target.value as ModelRegion | "all")}
+            style={{ width: "100%", border: "1px solid var(--border-primary)", borderRadius: "8px", height: "34px", padding: "0 10px", background: "var(--bg-card)" }}
+          >
+            <option value="all">{text.filterAll}</option>
+            <option value="cn">{text.filterRegionCn}</option>
+            <option value="us">{text.filterRegionUs}</option>
+            <option value="other">{text.filterRegionOther}</option>
+            <option value="unknown">{text.filterRegionUnknown}</option>
+          </select>
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginBottom: 4 }}>{text.filterSearch}</div>
+          <input
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder={locale === "zh" ? "输入模型名（如 claude / qwen / gpt）" : "Type model name (e.g. claude / qwen / gpt)"}
+            style={{ width: "100%", border: "1px solid var(--border-primary)", borderRadius: "8px", height: "34px", padding: "0 10px", background: "var(--bg-card)" }}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setOpennessFilter("all");
+            setRegionFilter("all");
+            setQuery("");
+          }}
+          style={{
+            height: "34px",
+            border: "1px solid var(--border-primary)",
+            borderRadius: "8px",
+            background: "var(--bg-card)",
+            padding: "0 12px",
+            fontWeight: 600,
+            color: "var(--text-secondary)",
+            cursor: "pointer",
+          }}
+        >
+          {text.filterReset}
+        </button>
+      </div>
+      <div style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: "0.55rem" }}>
+        {text.filterMatchCount} {filteredRows.length} / {rows.length}
+      </div>
       <table>
         <thead>
           <tr>
@@ -265,9 +421,13 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
           </tr>
         </thead>
         <tbody>
-          {results.map((r, i) => {
-            const dm = derivedMetrics[i];
-            const shortModelName = r.model.split("/").pop() ?? r.model;
+          {filteredRows.length === 0 ? (
+            <tr>
+              <td colSpan={8} style={{ textAlign: "center", color: "var(--text-muted)", padding: "1rem" }}>
+                {text.filterNoMatch}
+              </td>
+            </tr>
+          ) : filteredRows.map(({ r, dm, shortModelName, meta }, i) => {
             const logoSrc = getModelLogo(r.model);
             const startingCash = r.metrics.finalCash - r.finalScore - r.metrics.outstandingLoans;
             const cashDelta = r.metrics.finalCash - startingCash;
@@ -289,8 +449,11 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
                         style={{ width: 18, height: 18, flex: "0 0 auto", objectFit: "contain" }}
                       />
                     ) : null}
-                    <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
                       <ModelNameMarquee name={shortModelName} />
+                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                        {getRegionLabel(meta.region, text)} · {getOpennessLabel(meta.openness, text)}
+                      </div>
                     </div>
                   </div>
                 </td>
