@@ -68,6 +68,24 @@ interface ModelDiagnostic {
   criticalDays: DiagnosticDay[];
 }
 
+type PhaseKey = "early" | "mid" | "late";
+
+interface PhaseActionMetrics {
+  setPrice: number;
+  purchase: number;
+  promotion: number;
+  estimateOrder: number;
+  negotiate: number;
+}
+
+interface PhaseOutcomeMetrics {
+  revenue: number;
+  profit: number;
+  toolCalls: number;
+  errors: number;
+  zeroRevenueDays: number;
+}
+
 /* ─── Strategy classification ─── */
 
 const STRATEGY_META: Record<StrategyType, { color: string; emoji: string; title: string }> = {
@@ -961,34 +979,36 @@ function topToolsText(dm: DerivedMetrics, locale: Locale): string {
   return topTools.length > 0 ? topTools.join(", ") : (isZh ? "未记录到显著工具使用" : "No significant tool usage recorded");
 }
 
-function getPhaseActionCounts(result: SimulationResult) {
-  const counts = {
-    early: { setPrice: 0, purchase: 0, promotion: 0 },
-    mid: { setPrice: 0, purchase: 0, promotion: 0 },
-    late: { setPrice: 0, purchase: 0, promotion: 0 },
+function getPhaseActionCounts(result: SimulationResult): Record<PhaseKey, PhaseActionMetrics> {
+  const counts: Record<PhaseKey, PhaseActionMetrics> = {
+    early: { setPrice: 0, purchase: 0, promotion: 0, estimateOrder: 0, negotiate: 0 },
+    mid: { setPrice: 0, purchase: 0, promotion: 0, estimateOrder: 0, negotiate: 0 },
+    late: { setPrice: 0, purchase: 0, promotion: 0, estimateOrder: 0, negotiate: 0 },
   };
 
   for (const day of result.days) {
-    const phase = day.day <= 10 ? "early" : day.day <= 20 ? "mid" : "late";
+    const phase: PhaseKey = day.day <= 10 ? "early" : day.day <= 20 ? "mid" : "late";
     for (const call of day.toolCalls) {
       if (call.name === "set_price") counts[phase].setPrice += 1;
       if (call.name === "purchase_goods") counts[phase].purchase += 1;
       if (call.name === "run_promotion") counts[phase].promotion += 1;
+      if (call.name === "estimate_order") counts[phase].estimateOrder += 1;
+      if (call.name === "negotiate_supplier") counts[phase].negotiate += 1;
     }
   }
 
   return counts;
 }
 
-function getPhaseMetrics(result: SimulationResult) {
-  const metrics = {
+function getPhaseMetrics(result: SimulationResult): Record<PhaseKey, PhaseOutcomeMetrics> {
+  const metrics: Record<PhaseKey, PhaseOutcomeMetrics> = {
     early: { revenue: 0, profit: 0, toolCalls: 0, errors: 0, zeroRevenueDays: 0 },
     mid: { revenue: 0, profit: 0, toolCalls: 0, errors: 0, zeroRevenueDays: 0 },
     late: { revenue: 0, profit: 0, toolCalls: 0, errors: 0, zeroRevenueDays: 0 },
   };
 
   for (const day of result.days) {
-    const phase = day.day <= 10 ? "early" : day.day <= 20 ? "mid" : "late";
+    const phase: PhaseKey = day.day <= 10 ? "early" : day.day <= 20 ? "mid" : "late";
     metrics[phase].revenue += day.settlement.revenue;
     metrics[phase].profit += day.settlement.netProfit;
     metrics[phase].toolCalls += day.toolCalls.length;
@@ -999,6 +1019,16 @@ function getPhaseMetrics(result: SimulationResult) {
   }
 
   return metrics;
+}
+
+function getPhaseEndNetCash(result: SimulationResult, netCashSeries: number[]): Record<PhaseKey, number> {
+  const phaseEnd: Record<PhaseKey, number> = { early: 0, mid: 0, late: 0 };
+  for (let i = 0; i < result.days.length; i++) {
+    const day = result.days[i];
+    const phase: PhaseKey = day.day <= 10 ? "early" : day.day <= 20 ? "mid" : "late";
+    phaseEnd[phase] = netCashSeries.length > 0 ? netCashSeries[Math.min(i, netCashSeries.length - 1)] : 0;
+  }
+  return phaseEnd;
 }
 
 function getBestAndWorstDay(result: SimulationResult) {
@@ -1085,6 +1115,24 @@ function buildDeepDiveReports({
     });
   };
 
+  const phaseConfig: Array<{ key: PhaseKey; title: string; dayRange: string }> = [
+    {
+      key: "early",
+      title: isZh ? "开局阶段" : "Opening Phase",
+      dayRange: isZh ? "第 1-10 天" : "Day 1-10",
+    },
+    {
+      key: "mid",
+      title: isZh ? "中程阶段" : "Mid-Run Phase",
+      dayRange: isZh ? "第 11-20 天" : "Day 11-20",
+    },
+    {
+      key: "late",
+      title: isZh ? "收官阶段" : "Endgame Phase",
+      dayRange: isZh ? "第 21-30 天" : "Day 21-30",
+    },
+  ];
+
   return analyses.map((analysis, idx) => {
     const result = results[idx];
     const dm = derivedMetrics[idx];
@@ -1110,7 +1158,13 @@ function buildDeepDiveReports({
     const actionShare = 1 - infoShare;
     const phaseActions = getPhaseActionCounts(result);
     const phaseMetrics = getPhaseMetrics(result);
+    const referencePhaseActions = getPhaseActionCounts(referenceResult);
+    const referencePhaseMetrics = getPhaseMetrics(referenceResult);
     const { best, worst } = getBestAndWorstDay(result);
+    const modelNetCashSeries = buildNetCashSeries(result);
+    const referenceNetCashSeries = buildNetCashSeries(referenceResult);
+    const phaseEndNetCash = getPhaseEndNetCash(result, modelNetCashSeries);
+    const referencePhaseEndNetCash = getPhaseEndNetCash(referenceResult, referenceNetCashSeries);
 
     const promotionCalls = dm.callsByType["run_promotion"] ?? 0;
     const hiringCalls = dm.callsByType["hire_employee"] ?? 0;
@@ -1177,6 +1231,99 @@ function buildDeepDiveReports({
           ? `${analysis.displayName} 相比 ${referenceAnalysis.displayName} 的 30 天净现金差值为 ${formatYen(result.finalScore - referenceResult.finalScore)}。差距主要来自收入（${formatYen(analysis.totalRevenue - referenceAnalysis.totalRevenue)}）、毛利率（${((analysis.grossMargin - referenceAnalysis.grossMargin) * 100).toFixed(1)} 点）和执行可靠性（错误率差 ${((analysis.errorRate - referenceAnalysis.errorRate) * 100).toFixed(1)} 点）。`
           : `${analysis.displayName} is ${formatYen(result.finalScore - referenceResult.finalScore)} away from ${referenceAnalysis.displayName} in 30-Day Net Cash. The gap combines revenue (${formatYen(analysis.totalRevenue - referenceAnalysis.totalRevenue)}), margin (${((analysis.grossMargin - referenceAnalysis.grossMargin) * 100).toFixed(1)} pts), and tool reliability (${((analysis.errorRate - referenceAnalysis.errorRate) * 100).toFixed(1)} pts error-rate delta).`)
       : (isZh ? "当前仅有单模型数据，暂不支持对比基准分析。" : "Only one model is available in this run, so comparative benchmarking is not available yet.");
+
+    const phaseComparisons = phaseConfig.map(({ key, title, dayRange }) => {
+      const modelPhase = phaseMetrics[key];
+      const refPhase = referencePhaseMetrics[key];
+      const modelActions = phaseActions[key];
+      const refActions = referencePhaseActions[key];
+      const modelErrorRate = modelPhase.toolCalls > 0 ? modelPhase.errors / modelPhase.toolCalls : 0;
+      const referenceErrorRate = refPhase.toolCalls > 0 ? refPhase.errors / refPhase.toolCalls : 0;
+      const netProfitDiff = modelPhase.profit - refPhase.profit;
+      const revenueDiff = modelPhase.revenue - refPhase.revenue;
+      const endCashDiff = phaseEndNetCash[key] - referencePhaseEndNetCash[key];
+      const errorRateDiffPts = (modelErrorRate - referenceErrorRate) * 100;
+      const zeroRevenueDiff = modelPhase.zeroRevenueDays - refPhase.zeroRevenueDays;
+
+      const verdict = hasReferencePeer
+        ? (isZh
+            ? (netProfitDiff >= 0
+                ? `${title}：${analysis.displayName} 在阶段净利润上领先 ${formatYen(netProfitDiff)}。`
+                : `${title}：${analysis.displayName} 在阶段净利润上落后 ${formatYen(Math.abs(netProfitDiff))}。`)
+            : (netProfitDiff >= 0
+                ? `${title}: ${analysis.displayName} leads by ${formatYen(netProfitDiff)} in phase net profit.`
+                : `${title}: ${analysis.displayName} trails by ${formatYen(Math.abs(netProfitDiff))} in phase net profit.`))
+        : (isZh
+            ? `${title}：当前仅有单模型运行，展示该模型阶段内的动作与结果。`
+            : `${title}: single-model run; showing this model's phase actions and outcomes only.`);
+
+      const summary = hasReferencePeer
+        ? (isZh
+            ? `收入差 ${formatYen(revenueDiff)}，阶段末净现金差 ${formatYen(endCashDiff)}。主要动作差异：调价 ${modelActions.setPrice - refActions.setPrice >= 0 ? "+" : ""}${modelActions.setPrice - refActions.setPrice}，采购 ${modelActions.purchase - refActions.purchase >= 0 ? "+" : ""}${modelActions.purchase - refActions.purchase}，谈判 ${modelActions.negotiate - refActions.negotiate >= 0 ? "+" : ""}${modelActions.negotiate - refActions.negotiate}。`
+            : `Revenue delta ${formatYen(revenueDiff)}, phase-end net cash delta ${formatYen(endCashDiff)}. Action differences: ${modelActions.setPrice - refActions.setPrice >= 0 ? "+" : ""}${modelActions.setPrice - refActions.setPrice} pricing changes, ${modelActions.purchase - refActions.purchase >= 0 ? "+" : ""}${modelActions.purchase - refActions.purchase} purchases, ${modelActions.negotiate - refActions.negotiate >= 0 ? "+" : ""}${modelActions.negotiate - refActions.negotiate} negotiations.`)
+        : (isZh
+            ? `本阶段收入 ${formatYen(modelPhase.revenue)}，净利润 ${formatYen(modelPhase.profit)}，阶段末净现金 ${formatYen(phaseEndNetCash[key])}。`
+            : `This phase delivered ${formatYen(modelPhase.revenue)} revenue, ${formatYen(modelPhase.profit)} net profit, and ${formatYen(phaseEndNetCash[key])} phase-end net cash.`);
+
+      return {
+        phaseKey: key,
+        title,
+        dayRange,
+        verdict,
+        summary,
+        metrics: [
+          {
+            label: isZh ? "阶段收入" : "Phase Revenue",
+            model: formatYen(modelPhase.revenue),
+            reference: formatYen(refPhase.revenue),
+            delta: `${revenueDiff >= 0 ? "+" : ""}${formatYen(revenueDiff)}`,
+            tone: revenueDiff >= 0 ? "good" as const : "bad" as const,
+          },
+          {
+            label: isZh ? "阶段净利润" : "Phase Net Profit",
+            model: formatYen(modelPhase.profit),
+            reference: formatYen(refPhase.profit),
+            delta: `${netProfitDiff >= 0 ? "+" : ""}${formatYen(netProfitDiff)}`,
+            tone: netProfitDiff >= 0 ? "good" as const : "bad" as const,
+          },
+          {
+            label: isZh ? "阶段末净现金" : "Phase-End Net Cash",
+            model: formatYen(phaseEndNetCash[key]),
+            reference: formatYen(referencePhaseEndNetCash[key]),
+            delta: `${endCashDiff >= 0 ? "+" : ""}${formatYen(endCashDiff)}`,
+            tone: endCashDiff >= 0 ? "good" as const : "bad" as const,
+          },
+          {
+            label: isZh ? "工具错误率" : "Tool Error Rate",
+            model: `${(modelErrorRate * 100).toFixed(1)}%`,
+            reference: `${(referenceErrorRate * 100).toFixed(1)}%`,
+            delta: `${errorRateDiffPts >= 0 ? "+" : ""}${errorRateDiffPts.toFixed(1)}${isZh ? " 点" : " pts"}`,
+            tone: errorRateDiffPts <= 0 ? "good" as const : "bad" as const,
+          },
+          {
+            label: isZh ? "零收入天数" : "Zero-Revenue Days",
+            model: `${modelPhase.zeroRevenueDays}${isZh ? " 天" : ""}`,
+            reference: `${refPhase.zeroRevenueDays}${isZh ? " 天" : ""}`,
+            delta: `${zeroRevenueDiff >= 0 ? "+" : ""}${zeroRevenueDiff}${isZh ? " 天" : " days"}`,
+            tone: zeroRevenueDiff <= 0 ? "good" as const : "bad" as const,
+          },
+          {
+            label: isZh ? "调价 / 采购 / 促销" : "Price / Purchase / Promo",
+            model: `${modelActions.setPrice} / ${modelActions.purchase} / ${modelActions.promotion}`,
+            reference: `${refActions.setPrice} / ${refActions.purchase} / ${refActions.promotion}`,
+            delta: `${modelActions.setPrice - refActions.setPrice >= 0 ? "+" : ""}${modelActions.setPrice - refActions.setPrice} / ${modelActions.purchase - refActions.purchase >= 0 ? "+" : ""}${modelActions.purchase - refActions.purchase} / ${modelActions.promotion - refActions.promotion >= 0 ? "+" : ""}${modelActions.promotion - refActions.promotion}`,
+            tone: "neutral" as const,
+          },
+          {
+            label: isZh ? "估单 / 供应商谈判" : "Estimate / Negotiate",
+            model: `${modelActions.estimateOrder} / ${modelActions.negotiate}`,
+            reference: `${refActions.estimateOrder} / ${refActions.negotiate}`,
+            delta: `${modelActions.estimateOrder - refActions.estimateOrder >= 0 ? "+" : ""}${modelActions.estimateOrder - refActions.estimateOrder} / ${modelActions.negotiate - refActions.negotiate >= 0 ? "+" : ""}${modelActions.negotiate - refActions.negotiate}`,
+            tone: "neutral" as const,
+          },
+        ],
+      };
+    });
 
     const chapters = [
       {
@@ -1261,8 +1408,6 @@ function buildDeepDiveReports({
     ];
 
     const trendData: Record<string, string | number>[] = [];
-    const modelNetCashSeries = buildNetCashSeries(result);
-    const referenceNetCashSeries = buildNetCashSeries(referenceResult);
     const days = Math.max(modelNetCashSeries.length, referenceNetCashSeries.length);
     for (let day = 0; day < days; day++) {
       const modelValue =
@@ -1400,6 +1545,7 @@ function buildDeepDiveReports({
         radarData,
         toolMixData,
       },
+      phaseComparisons,
       chapters,
       chartKeys: {
         model: modelKey,

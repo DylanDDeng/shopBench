@@ -43,6 +43,23 @@ interface DeepDiveChapter {
   evidence: string;
 }
 
+interface DeepDivePhaseMetricRow {
+  label: string;
+  model: string;
+  reference: string;
+  delta: string;
+  tone: "good" | "bad" | "neutral";
+}
+
+interface DeepDivePhaseComparison {
+  phaseKey: "early" | "mid" | "late";
+  title: string;
+  dayRange: string;
+  verdict: string;
+  summary: string;
+  metrics: DeepDivePhaseMetricRow[];
+}
+
 export interface DeepDiveReport {
   modelId: string;
   displayName: string;
@@ -59,6 +76,7 @@ export interface DeepDiveReport {
   snapshot: DeepDiveSnapshot;
   comparison: DeepDiveComparison;
   charts: DeepDiveCharts;
+  phaseComparisons: DeepDivePhaseComparison[];
   chapters: DeepDiveChapter[];
   chartKeys: {
     model: string;
@@ -188,6 +206,45 @@ export function DeepDiveReports({ reports, locale = "en" }: DeepDiveReportsProps
               <p className="deep-dive-evidence-note">{chapter.evidence}</p>
             </article>
           ))}
+        </section>
+
+        <section className="card-flat deep-dive-phase-compare">
+          <div className="deep-dive-phase-head">
+            <h3>{isZh ? "分阶段决策对比模板" : "Phase Decision Comparison Template"}</h3>
+            <p className="deep-dive-paragraph">
+              {isZh
+                ? `固定口径（开局/中程/收官）对比 ${report.displayName} 与 ${report.comparison.referenceName} 的阶段动作与结果。`
+                : `Standardized opening/mid/endgame comparison between ${report.displayName} and ${report.comparison.referenceName}.`}
+            </p>
+          </div>
+          <div className="deep-dive-phase-grid">
+            {report.phaseComparisons.map(phase => (
+              <article key={`${report.modelId}-${phase.phaseKey}`} className="deep-dive-phase-card">
+                <div className="deep-dive-phase-card-head">
+                  <h4>{phase.title}</h4>
+                  <span>{phase.dayRange}</span>
+                </div>
+                <p className="deep-dive-phase-verdict">{phase.verdict}</p>
+                <p className="deep-dive-phase-summary">{phase.summary}</p>
+
+                <div className="deep-dive-phase-legend">
+                  <span>{report.displayName}</span>
+                  <span>{report.comparison.referenceName}</span>
+                  <span>{isZh ? "差值" : "Delta"}</span>
+                </div>
+                <div className="deep-dive-phase-metrics">
+                  {phase.metrics.map(metric => (
+                    <div key={`${phase.phaseKey}-${metric.label}`} className="deep-dive-phase-row">
+                      <div className="deep-dive-phase-label">{metric.label}</div>
+                      <div className="deep-dive-phase-value">{metric.model}</div>
+                      <div className="deep-dive-phase-value">{metric.reference}</div>
+                      <div className={`deep-dive-phase-delta ${metric.tone}`}>{metric.delta}</div>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
         </section>
 
         <section className="card-flat deep-dive-evidence">
