@@ -317,6 +317,10 @@ const MODEL_DISPLAY_NAMES: Record<string, string> = {
 };
 
 export function getModelDisplayName(model: string): string {
+  const normalized = model.toLowerCase();
+  if ((normalized.startsWith("anthropic/claude-") || normalized.startsWith("claude-")) && normalized.endsWith("-thinking")) {
+    return model.split("/").pop() ?? model;
+  }
   const raw = MODEL_DISPLAY_NAMES[model] ?? model.split("/").pop() ?? model;
   return raw.replace(/xhgih/gi, "xhigh");
 }

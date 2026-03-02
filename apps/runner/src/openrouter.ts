@@ -4,6 +4,7 @@ export interface OpenRouterConfig {
   apiKey: string;
   model: string;
   baseUrl?: string;
+  reasoningEnabled?: boolean;
   reasoningEffort?: "low" | "medium" | "high" | "xhigh";
 }
 
@@ -67,7 +68,8 @@ const REASONING_MODELS = [
 ];
 
 function needsReasoning(model: string): boolean {
-  return REASONING_MODELS.some(m => model === m || model.startsWith(m + "-"));
+  const normalized = model.toLowerCase();
+  return REASONING_MODELS.some(m => normalized === m || normalized.startsWith(m + "-"));
 }
 
 export class OpenRouterClient {
@@ -79,7 +81,8 @@ export class OpenRouterClient {
   constructor(config: OpenRouterConfig) {
     this.config = config;
     this.reasoningEffort = config.reasoningEffort;
-    this.reasoning = needsReasoning(config.model) || Boolean(config.reasoningEffort);
+    const inferredReasoning = needsReasoning(config.model) || Boolean(config.reasoningEffort);
+    this.reasoning = config.reasoningEnabled ?? inferredReasoning;
   }
 
   async chat(messages: Message[], maxRetries = 3): Promise<ChatResponse> {

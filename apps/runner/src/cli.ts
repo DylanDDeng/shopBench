@@ -20,6 +20,14 @@ const MODEL_PRESETS: Record<string, { openrouterModel: string; reasoningEffort: 
   "gpt-5.3-xhgih": { openrouterModel: "openai/gpt-5.3-codex", reasoningEffort: "xhigh" },
 };
 
+function isClaudeModelId(modelId: string): boolean {
+  return modelId.toLowerCase().startsWith("anthropic/claude-");
+}
+
+function stripThinkingSuffix(modelId: string): string {
+  return modelId.replace(/-thinking$/i, "");
+}
+
 function usage() {
   console.log(`
 ShopBench — AI Business Simulation Benchmark
@@ -56,13 +64,26 @@ async function main() {
     return undefined;
   };
 
-  const model = getArg(["--model", "-m"]);
-  if (!model) {
+  const modelArg = getArg(["--model", "-m"]);
+  if (!modelArg) {
     console.error("Error: --model is required");
     process.exit(1);
   }
-  const preset = MODEL_PRESETS[model.toLowerCase()];
-  const openrouterModel = getArg(["--openrouter-model"]) ?? preset?.openrouterModel ?? model;
+  const isClaudeThinking = isClaudeModelId(modelArg) && /-thinking$/i.test(modelArg);
+  const baseModelArg = isClaudeThinking ? stripThinkingSuffix(modelArg) : modelArg;
+  const model = modelArg;
+
+  const preset = MODEL_PRESETS[baseModelArg.toLowerCase()] ?? MODEL_PRESETS[modelArg.toLowerCase()];
+  const openrouterModel = getArg(["--openrouter-model"]) ?? preset?.openrouterModel ?? baseModelArg;
+
+  // Claude dual mode:
+  // - anthropic/claude-xxx => reasoning disabled
+  // - anthropic/claude-xxx-thinking => reasoning enabled (while calling base OpenRouter ID)
+  let reasoningEnabled: boolean | undefined;
+  if (isClaudeModelId(baseModelArg)) {
+    reasoningEnabled = isClaudeThinking;
+  }
+
   const effortArg = getArg(["--reasoning-effort"]);
   let reasoningEffort: ReasoningEffort | undefined = preset?.reasoningEffort;
   if (effortArg) {
@@ -106,6 +127,9 @@ async function main() {
   if (openrouterModel !== model) {
     console.log(`OpenRouter model: ${openrouterModel}`);
   }
+  if (reasoningEnabled !== undefined) {
+    console.log(`Reasoning enabled: ${reasoningEnabled ? "true" : "false"}`);
+  }
   if (reasoningEffort) {
     console.log(`Reasoning effort: ${reasoningEffort}`);
   }
@@ -117,6 +141,7 @@ async function main() {
     scenario,
     model,
     openrouterModel,
+    reasoningEnabled,
     reasoningEffort,
     apiKey,
     baseUrl,

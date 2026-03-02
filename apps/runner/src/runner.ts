@@ -12,6 +12,8 @@ export interface RunConfig {
   model: string;
   // Actual OpenRouter model ID used for API calls; defaults to `model`
   openrouterModel?: string;
+  // Optional explicit override for reasoning.enabled in request body
+  reasoningEnabled?: boolean;
   // Optional reasoning effort override for reasoning-enabled models
   reasoningEffort?: "low" | "medium" | "high" | "xhigh";
   apiKey: string;
@@ -59,7 +61,7 @@ Think strategically. Every decision counts.`;
 }
 
 export async function runSimulation(config: RunConfig): Promise<SimulationResult> {
-  const { scenario, model, openrouterModel, reasoningEffort, apiKey, baseUrl, verbose } = config;
+  const { scenario, model, openrouterModel, reasoningEnabled, reasoningEffort, apiKey, baseUrl, verbose } = config;
 
   // Merge default events if scenario has none
   const fullScenario: ScenarioConfig = {
@@ -72,6 +74,7 @@ export async function runSimulation(config: RunConfig): Promise<SimulationResult
     apiKey,
     model: openrouterModel ?? model,
     baseUrl,
+    reasoningEnabled,
     reasoningEffort,
   });
   const allDayRecords: DayRecord[] = [];
