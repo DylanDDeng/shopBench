@@ -3,9 +3,12 @@ import { TOOL_DEFINITIONS } from "@shopbench/tools";
 export interface OpenRouterConfig {
   apiKey: string;
   model: string;
+  provider?: "openrouter" | "ark";
   baseUrl?: string;
   reasoningEnabled?: boolean;
   reasoningEffort?: "low" | "medium" | "high" | "xhigh";
+  strictTools?: boolean;
+  parallelToolCalls?: boolean;
 }
 
 interface Message {
@@ -69,39 +72,101 @@ const REASONING_MODELS = [
 
 function needsReasoning(model: string): boolean {
   const normalized = model.toLowerCase();
+  if (normalized.startsWith("doubao-seed")) return true;
   return REASONING_MODELS.some(m => normalized === m || normalized.startsWith(m + "-"));
+}
+
+function buildStrictToolDefinitions(definitions: readonly unknown[]): unknown[] {
+  return definitions.map(rawTool => {
+    const tool = rawTool as {
+      type: "function";
+      function: {
+        name: string;
+        description: string;
+        parameters: {
+          type: "object";
+          properties?: Record<string, { type?: string | string[]; description?: string; enum?: string[] }>;
+          required?: string[];
+        };
+      };
+    };
+
+    const properties = tool.function.parameters.properties ?? {};
+    const required = new Set(tool.function.parameters.required ?? []);
+
+    const strictProperties = Object.fromEntries(
+      Object.entries(properties).map(([name, prop]) => {
+        if (required.has(name)) return [name, { ...prop }];
+        const existingType = prop.type;
+        const typeArray = Array.isArray(existingType) ? existingType : existingType ? [existingType] : ["string"];
+        const nullableType = typeArray.includes("null") ? typeArray : [...typeArray, "null"];
+        return [name, { ...prop, type: nullableType }];
+      }),
+    );
+
+    return {
+      ...tool,
+      function: {
+        ...tool.function,
+        strict: true,
+        parameters: {
+          ...tool.function.parameters,
+          properties: strictProperties,
+          required: Object.keys(properties),
+          additionalProperties: false,
+        },
+      },
+    };
+  });
 }
 
 export class OpenRouterClient {
   private config: OpenRouterConfig;
   private totalTokens = 0;
+  private provider: "openrouter" | "ark";
   private reasoning: boolean;
   private reasoningEffort?: "low" | "medium" | "high" | "xhigh";
+  private strictTools: boolean;
+  private parallelToolCalls?: boolean;
+  private tools: unknown[];
 
   constructor(config: OpenRouterConfig) {
     this.config = config;
+    this.provider = config.provider ?? ((config.baseUrl ?? "").includes("volces.com") ? "ark" : "openrouter");
     this.reasoningEffort = config.reasoningEffort;
     const inferredReasoning = needsReasoning(config.model) || Boolean(config.reasoningEffort);
     this.reasoning = config.reasoningEnabled ?? inferredReasoning;
+    this.strictTools = config.strictTools ?? false;
+    this.parallelToolCalls = config.parallelToolCalls;
+    this.tools = this.strictTools ? buildStrictToolDefinitions(TOOL_DEFINITIONS) : TOOL_DEFINITIONS;
   }
 
   async chat(messages: Message[], maxRetries = 3): Promise<ChatResponse> {
-    const url = `${this.config.baseUrl ?? "https://openrouter.ai/api/v1"}/chat/completions`;
+    const defaultBaseUrl = this.provider === "ark" ? "https://ark.cn-beijing.volces.com/api/v3" : "https://openrouter.ai/api/v1";
+    const url = `${this.config.baseUrl ?? defaultBaseUrl}/chat/completions`;
 
     const body: Record<string, unknown> = {
       model: this.config.model,
       messages,
-      tools: TOOL_DEFINITIONS,
+      tools: this.tools,
       tool_choice: "auto",
     };
 
+    if (this.parallelToolCalls !== undefined) {
+      body.parallel_tool_calls = this.parallelToolCalls;
+    }
+
     // Models in REASONING_MODELS require this parameter.
     if (this.reasoning) {
-      const reasoningBody: { enabled: true; effort?: "low" | "medium" | "high" | "xhigh" } = { enabled: true };
-      if (this.reasoningEffort) {
-        reasoningBody.effort = this.reasoningEffort;
+      if (this.provider === "ark") {
+        body.thinking = { type: "enabled" };
+      } else {
+        const reasoningBody: { enabled: true; effort?: "low" | "medium" | "high" | "xhigh" } = { enabled: true };
+        if (this.reasoningEffort) {
+          reasoningBody.effort = this.reasoningEffort;
+        }
+        body.reasoning = reasoningBody;
       }
-      body.reasoning = reasoningBody;
     }
 
     let lastError: Error | null = null;
@@ -113,8 +178,12 @@ export class OpenRouterClient {
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${this.config.apiKey}`,
-            "HTTP-Referer": "https://shopbench.dev",
-            "X-Title": "ShopBench",
+            ...(this.provider === "openrouter"
+              ? {
+                  "HTTP-Referer": "https://shopbench.dev",
+                  "X-Title": "ShopBench",
+                }
+              : {}),
           },
           body: JSON.stringify(body),
         });
@@ -124,9 +193,9 @@ export class OpenRouterClient {
           const status = res.status;
           // 4xx client errors (except 429 rate limit) are not retryable
           if (status >= 400 && status < 500 && status !== 429) {
-            throw new Error(`OpenRouter API error ${status}: ${text}`);
+            throw new Error(`${this.provider.toUpperCase()} API error ${status}: ${text}`);
           }
-          throw new Error(`OpenRouter API error ${status} (retryable): ${text}`);
+          throw new Error(`${this.provider.toUpperCase()} API error ${status} (retryable): ${text}`);
         }
 
         const data = (await res.json()) as ChatResponse;

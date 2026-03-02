@@ -10,12 +10,18 @@ export interface RunConfig {
   scenario: ScenarioConfig;
   // Display name stored in result.model (used by leaderboard/report)
   model: string;
-  // Actual OpenRouter model ID used for API calls; defaults to `model`
-  openrouterModel?: string;
+  // Actual provider model ID used for API calls; defaults to `model`
+  providerModel?: string;
+  // Model provider endpoint flavor
+  provider?: "openrouter" | "ark";
   // Optional explicit override for reasoning.enabled in request body
   reasoningEnabled?: boolean;
   // Optional reasoning effort override for reasoning-enabled models
   reasoningEffort?: "low" | "medium" | "high" | "xhigh";
+  // Optional strict mode for function tools (schema constrained)
+  strictTools?: boolean;
+  // Optional explicit control for provider-level parallel tool calls
+  parallelToolCalls?: boolean;
   apiKey: string;
   baseUrl?: string;
   verbose?: boolean;
@@ -61,7 +67,19 @@ Think strategically. Every decision counts.`;
 }
 
 export async function runSimulation(config: RunConfig): Promise<SimulationResult> {
-  const { scenario, model, openrouterModel, reasoningEnabled, reasoningEffort, apiKey, baseUrl, verbose } = config;
+  const {
+    scenario,
+    model,
+    providerModel,
+    provider,
+    reasoningEnabled,
+    reasoningEffort,
+    strictTools,
+    parallelToolCalls,
+    apiKey,
+    baseUrl,
+    verbose,
+  } = config;
 
   // Merge default events if scenario has none
   const fullScenario: ScenarioConfig = {
@@ -72,10 +90,13 @@ export async function runSimulation(config: RunConfig): Promise<SimulationResult
   const world = new World(fullScenario);
   const client = new OpenRouterClient({
     apiKey,
-    model: openrouterModel ?? model,
+    model: providerModel ?? model,
+    provider,
     baseUrl,
     reasoningEnabled,
     reasoningEffort,
+    strictTools,
+    parallelToolCalls,
   });
   const allDayRecords: DayRecord[] = [];
 

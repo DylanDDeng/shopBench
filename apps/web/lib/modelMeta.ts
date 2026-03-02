@@ -20,6 +20,8 @@ const PROVIDER_META: Record<string, Omit<ModelMeta, "provider">> = {
   "google": { region: "us", openness: "closed" },
   "x-ai": { region: "us", openness: "closed" },
   "meta-llama": { region: "us", openness: "open" },
+  "bytedance-seed": { region: "cn", openness: "closed" },
+  "doubao": { region: "cn", openness: "closed" },
 
   "qwen": { region: "cn", openness: "open" },
   "deepseek": { region: "cn", openness: "open" },
@@ -40,6 +42,12 @@ export function getModelMeta(modelId: string): ModelMeta {
 
   if (normalizedId.startsWith("gpt-")) {
     return { provider: "openai", region: "us", openness: "closed" };
+  }
+  if (normalizedId.startsWith("doubao-")) {
+    return { provider: "bytedance-seed", region: "cn", openness: "closed" };
+  }
+  if (normalizedId.startsWith("bytedance-seed/")) {
+    return { provider: "bytedance-seed", region: "cn", openness: "closed" };
   }
 
   return { provider: provider || "unknown", region: "unknown", openness: "unknown" };

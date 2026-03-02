@@ -238,6 +238,7 @@ function ModelNameMarquee({ name }: { name: string }) {
 function getModelLogo(model: string): string | null {
   const key = model.toLowerCase();
   if (key.includes("claude")) return "/leaderboard/claude-color.svg";
+  if (key.includes("doubao") || key.includes("bytedance-seed")) return "/leaderboard/doubao-color.svg";
   if (key.includes("stepfun") || key.includes("step-")) return "/leaderboard/stepfun-color.svg";
   if (key.includes("gemini")) return "/leaderboard/gemini-color.svg";
   if (key.includes("deepseek")) return "/leaderboard/deepseek-color.svg";
