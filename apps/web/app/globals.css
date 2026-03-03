@@ -2430,6 +2430,16 @@ thead tr:hover {
   max-width: 0;
 }
 
+.cash-change-cell {
+  font-variant-numeric: tabular-nums;
+}
+
+.cash-change-sub {
+  margin-top: 0.18rem;
+  font-size: 0.82rem;
+  line-height: 1.1;
+}
+
 .model-marquee {
   width: 100%;
   overflow: hidden;

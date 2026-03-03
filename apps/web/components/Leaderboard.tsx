@@ -62,8 +62,8 @@ const LEADERBOARD_TEXT: Record<Locale, {
   en: {
     rank: "Rank",
     model: "Model",
-    netCash: "30-Day Net Cash (¥)",
-    netCashHelp: "Final cash minus starting cash minus outstanding loans; this is the ranking metric.",
+    netCash: "30-Day Net Cash (¥) + Δ%",
+    netCashHelp: "Top number is ranking metric: final cash minus starting cash minus outstanding loans. Lower line is final-cash return over 30 days: (final cash - starting cash) / starting cash.",
     changePct: "30-Day Change %",
     changePctHelp: "Final-cash return over 30 days: (final cash - starting cash) / starting cash.",
     grossMargin: "Gross Margin",
@@ -102,8 +102,8 @@ const LEADERBOARD_TEXT: Record<Locale, {
   zh: {
     rank: "排名",
     model: "模型",
-    netCash: "30天净现金 (¥)",
-    netCashHelp: "期末现金减去初始现金和未偿贷款；该指标用于最终排名。",
+    netCash: "30天净现金 (¥) + 涨跌%",
+    netCashHelp: "上行数字为排名指标：期末现金减去初始现金和未偿贷款。下行百分比为30天现金回报率：（期末现金 - 初始现金）/ 初始现金。",
     changePct: "30天涨跌幅",
     changePctHelp: "30天最终现金回报率：（期末现金 - 初始现金）/ 初始现金。",
     grossMargin: "毛利率",
@@ -392,13 +392,6 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
             </th>
             <th className="text-center">
               <MetricInfo
-                label={text.changePct}
-                help={text.changePctHelp}
-                locale={locale}
-              />
-            </th>
-            <th className="text-center">
-              <MetricInfo
                 label={text.grossMargin}
                 help={text.grossMarginHelp}
                 locale={locale}
@@ -424,7 +417,7 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
         <tbody>
           {filteredRows.length === 0 ? (
             <tr>
-              <td colSpan={8} style={{ textAlign: "center", color: "var(--text-muted)", padding: "1rem" }}>
+              <td colSpan={7} style={{ textAlign: "center", color: "var(--text-muted)", padding: "1rem" }}>
                 {text.filterNoMatch}
               </td>
             </tr>
@@ -458,11 +451,13 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
                     </div>
                   </div>
                 </td>
-                <td className={`text-center ${r.finalScore >= 0 ? "profit-positive" : "profit-negative"}`}>
-                  {formatYen(r.finalScore)}
-                </td>
-                <td className={`text-center ${changePct >= 0 ? "profit-positive" : "profit-negative"}`}>
-                  {formatSignedPct(changePct)}
+                <td className="text-center cash-change-cell">
+                  <div className={r.finalScore >= 0 ? "profit-positive" : "profit-negative"}>
+                    {formatYen(r.finalScore)}
+                  </div>
+                  <div className={`cash-change-sub ${changePct >= 0 ? "profit-positive" : "profit-negative"}`}>
+                    {formatSignedPct(changePct)}
+                  </div>
                 </td>
                 <td className="text-center">{formatPct(dm.grossMargin)}</td>
                 <td className="text-center">{formatPct(dm.errorRate)}</td>
