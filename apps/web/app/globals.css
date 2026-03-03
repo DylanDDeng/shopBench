@@ -1280,58 +1280,73 @@ thead tr:hover {
 
 /* ─── About Page ─── */
 
-.about-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-md);
+.about-doc {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0.95rem 1.1rem;
 }
 
-.about-step-list {
-  margin: 0;
-  padding-left: 1.25rem;
+.about-doc-section + .about-doc-section {
+  border-top: 1px solid var(--border-primary);
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.about-doc h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+
+.about-doc p {
+  margin: 0 0 0.55rem;
   color: var(--text-secondary);
 }
 
+.about-step-list {
+  margin: 0 0 0.2rem;
+  padding-left: 1.25rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
 .about-step-list li {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.35rem;
 }
 
 .about-step-list li:last-child {
   margin-bottom: 0;
 }
 
+.about-flow-figure {
+  margin: 0 0 0.65rem;
+  padding: 0.62rem 0.72rem;
+  border-radius: var(--radius-sm);
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.84rem;
+}
+
 .about-formula {
-  margin: 0 0 0.75rem;
-  padding: 0.75rem 1rem;
+  margin: 0 0 0.65rem;
+  padding: 0.58rem 0.7rem;
   border-radius: var(--radius-sm);
-  border: 1px solid #1e293b;
-  background: #0f172a;
-  color: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
   font-family: var(--font-mono);
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   overflow-x: auto;
-}
-
-.about-note {
-  margin-top: 0.75rem;
-  padding: 0.75rem 0.875rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid #bfdbfe;
-  background: #eff6ff;
-  color: #1e3a8a;
-}
-
-.about-note strong {
-  color: #1e3a8a;
 }
 
 .about-code {
   margin: 0 0 1rem;
-  padding: 0.75rem 1rem;
+  padding: 0.65rem 0.8rem;
   border-radius: var(--radius-sm);
-  border: 1px solid #1e293b;
-  background: #0f172a;
-  color: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
   font-size: 0.8125rem;
   font-family: var(--font-mono);
   line-height: 1.5;
@@ -2582,10 +2597,6 @@ thead tr:hover {
   }
 
   .replay-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .about-grid {
     grid-template-columns: 1fr;
   }
 
