@@ -1,25 +1,34 @@
 /* ─── Chart Theme Configuration ─── */
 
 export const CHART_THEME = {
-  grid: { stroke: "#e2e8f0", strokeDasharray: "3 3" },
+  grid: { stroke: "#dbe5f1", strokeDasharray: "4 4" },
   axis: {
     stroke: "#94a3b8",
-    tick: { fill: "#64748b", fontSize: 12 },
+    tick: { fill: "#475569", fontSize: 12 },
     fontSize: 12,
   },
   tooltip: {
     contentStyle: {
-      background: "#ffffff",
-      border: "1px solid #cbd5e1",
-      borderRadius: "8px",
-      fontSize: "13px",
-      color: "#0f172a",
-      boxShadow: "0 6px 20px rgba(15, 23, 42, 0.08)",
+      background: "rgba(15, 23, 42, 0.96)",
+      border: "1px solid #334155",
+      borderRadius: "10px",
+      fontSize: "12px",
+      color: "#e2e8f0",
+      boxShadow: "0 10px 30px rgba(2, 6, 23, 0.4)",
+      padding: "0.45rem 0.6rem",
     },
-    cursor: { stroke: "#cbd5e1" },
+    labelStyle: {
+      color: "#bfdbfe",
+      fontWeight: 600,
+      marginBottom: "0.2rem",
+    },
+    itemStyle: {
+      color: "#e2e8f0",
+    },
+    cursor: { stroke: "#94a3b8", strokeDasharray: "3 3", strokeWidth: 1 },
   },
-  animation: { duration: 800, easing: "ease-out" as const },
-  referenceLine: { stroke: "#94a3b8", strokeDasharray: "4 4" },
+  animation: { duration: 650, easing: "ease-out" as const },
+  referenceLine: { stroke: "#64748b", strokeDasharray: "4 4", opacity: 0.9 },
 };
 
 /* ─── Model Colors ─── */

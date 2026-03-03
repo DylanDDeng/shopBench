@@ -30,6 +30,14 @@ const REPORT_TEXT: Record<Locale, {
   yes: string;
   no: string;
   replayLink: string;
+  summaryTitle: string;
+  summaryPositive: string;
+  summaryNegative: string;
+  profitDays: string;
+  lossDays: string;
+  bestDay: string;
+  worstDay: string;
+  toolErrorRate: string;
 }> = {
   en: {
     scenario: "Scenario",
@@ -55,6 +63,14 @@ const REPORT_TEXT: Record<Locale, {
     yes: "Yes",
     no: "No",
     replayLink: "View Day-by-Day Replay",
+    summaryTitle: "30-Day Executive Summary",
+    summaryPositive: "Cash-positive execution profile",
+    summaryNegative: "Cash-negative execution profile",
+    profitDays: "Profit Days",
+    lossDays: "Loss Days",
+    bestDay: "Best Day",
+    worstDay: "Worst Day",
+    toolErrorRate: "Tool Error Rate",
   },
   zh: {
     scenario: "场景",
@@ -80,8 +96,21 @@ const REPORT_TEXT: Record<Locale, {
     yes: "是",
     no: "否",
     replayLink: "查看逐日回放",
+    summaryTitle: "30天经营摘要",
+    summaryPositive: "净现金为正，执行稳定",
+    summaryNegative: "净现金为负，经营承压",
+    profitDays: "盈利天数",
+    lossDays: "亏损天数",
+    bestDay: "最佳单日",
+    worstDay: "最差单日",
+    toolErrorRate: "工具错误率",
   },
 };
+
+function formatDelta(value: number): string {
+  if (!Number.isFinite(value)) return "–";
+  return `${value >= 0 ? "+" : ""}${value.toFixed(0)}`;
+}
 
 export default async function ReportPage({
   params,
@@ -99,14 +128,19 @@ export default async function ReportPage({
   const dm = computeDerivedMetrics(result);
 
   // Build chart data
+  const inferredStartingCash = m.finalCash - m.netProfit;
+  const hasCashSeries = dm.dailyCash.some(v => v !== 0);
   let cumulative = 0;
   const profitChartData = m.dailyProfitTrend.map((profit, i) => {
     cumulative += profit;
+    const fallbackCash = inferredStartingCash + cumulative;
+    const cash = hasCashSeries ? (dm.dailyCash[i] ?? fallbackCash) : fallbackCash;
     return {
       day: i + 1,
       profit: Math.round(profit),
       cumulative: Math.round(cumulative),
       revenue: Math.round(dm.dailyRevenue[i] ?? 0),
+      netCash: Math.round(cash),
     };
   });
 
@@ -154,6 +188,29 @@ export default async function ReportPage({
 
   const sat = m.customerSatisfactionTrend;
   const rep = m.reputationTrend ?? [];
+  const totalDays = m.dailyProfitTrend.length;
+  const profitableDays = m.dailyProfitTrend.filter(v => v >= 0).length;
+  const lossDays = Math.max(0, totalDays - profitableDays);
+
+  const bestProfit = m.dailyProfitTrend.length > 0 ? Math.max(...m.dailyProfitTrend) : 0;
+  const worstProfit = m.dailyProfitTrend.length > 0 ? Math.min(...m.dailyProfitTrend) : 0;
+  const bestDay = m.dailyProfitTrend.length > 0 ? m.dailyProfitTrend.indexOf(bestProfit) + 1 : 0;
+  const worstDay = m.dailyProfitTrend.length > 0 ? m.dailyProfitTrend.indexOf(worstProfit) + 1 : 0;
+
+  const satStart = sat[0];
+  const satEnd = sat[sat.length - 1];
+  const repStart = rep[0];
+  const repEnd = rep[rep.length - 1];
+  const satDelta = typeof satStart === "number" && typeof satEnd === "number" ? satEnd - satStart : Number.NaN;
+  const repDelta = typeof repStart === "number" && typeof repEnd === "number" ? repEnd - repStart : Number.NaN;
+
+  const dayLabel = (day: number) => (locale === "zh" ? `第${day}天` : `Day ${day}`);
+  const bestDayText = bestDay > 0 ? `${dayLabel(bestDay)} · ${formatYen(bestProfit)}` : "–";
+  const worstDayText = worstDay > 0 ? `${dayLabel(worstDay)} · ${formatYen(worstProfit)}` : "–";
+  const summaryBody = locale === "zh"
+    ? `30天总收入 ${formatYen(dm.totalRevenue)}，毛利率 ${formatPct(dm.grossMargin)}，工具调用 ${m.totalToolCalls} 次（错误率 ${formatPct(dm.errorRate)}）。`
+    : `Across 30 days: revenue ${formatYen(dm.totalRevenue)}, gross margin ${formatPct(dm.grossMargin)}, and ${m.totalToolCalls} tool calls with ${formatPct(dm.errorRate)} error rate.`;
+  const profileTag = m.netProfit >= 0 ? text.summaryPositive : text.summaryNegative;
 
   return (
     <div className="container">
@@ -164,42 +221,91 @@ export default async function ReportPage({
         </p>
       </div>
 
+      <div className="card report-hero-panel">
+        <div className="report-hero-main">
+          <p className="report-hero-kicker">{text.summaryTitle}</p>
+          <div className="report-hero-title-row">
+            <h2 className="report-hero-value">{formatYen(m.netProfit)}</h2>
+            <span className={`report-hero-tag ${m.netProfit >= 0 ? "positive" : "negative"}`}>
+              {profileTag}
+            </span>
+          </div>
+          <p className="report-hero-desc">{summaryBody}</p>
+        </div>
+        <div className="report-hero-facts">
+          <div className="report-hero-fact">
+            <span>{text.profitDays}</span>
+            <strong>{profitableDays}/{totalDays}</strong>
+          </div>
+          <div className="report-hero-fact">
+            <span>{text.lossDays}</span>
+            <strong>{lossDays}/{totalDays}</strong>
+          </div>
+          <div className="report-hero-fact">
+            <span>{text.bestDay}</span>
+            <strong>{bestDayText}</strong>
+          </div>
+          <div className="report-hero-fact">
+            <span>{text.worstDay}</span>
+            <strong>{worstDayText}</strong>
+          </div>
+          <div className="report-hero-fact">
+            <span>{text.toolErrorRate}</span>
+            <strong>{formatPct(dm.errorRate)}</strong>
+          </div>
+        </div>
+      </div>
+
       {/* Hero metrics */}
-      <div className="grid-6" style={{ marginBottom: "2rem" }}>
+      <div className="grid-auto report-metric-grid" style={{ marginBottom: "2rem" }}>
         <MetricCard
           value={formatYen(m.netProfit)}
           label={text.score}
           color={m.netProfit >= 0 ? "#10b981" : "#ef4444"}
+          note={`${text.avgDailyProfit}: ${formatYen(m.avgDailyProfit)}`}
+          tone={m.netProfit >= 0 ? "positive" : "negative"}
         />
         <MetricCard
           value={formatYen(m.finalCash)}
           label={text.finalCash}
           color="#f59e0b"
+          note={`${text.outstandingLoans}: ${formatYen(m.outstandingLoans)}`}
+          tone={m.finalCash >= inferredStartingCash ? "positive" : "negative"}
         />
         <MetricCard
           value={formatYen(dm.totalRevenue)}
           label={text.totalRevenue}
           color="#60a5fa"
+          note={`${text.revenuePerCustomer}: ${formatYen(dm.revenuePerCustomer)}`}
+          tone="accent"
         />
         <MetricCard
           value={formatPct(dm.grossMargin)}
           label={text.grossMargin}
           color="#a78bfa"
+          note={`${text.inventoryWasteRate}: ${formatPct(m.inventoryWasteRate)}`}
+          tone="accent"
         />
         <MetricCard
           value={String(m.totalToolCalls)}
           label={text.toolCalls}
           color="#84cc16"
+          note={`${text.toolErrorRate}: ${formatPct(dm.errorRate)}`}
+          tone="neutral"
         />
         <MetricCard
           value={`${sat[0]?.toFixed(0) ?? "–"} → ${sat[sat.length - 1]?.toFixed(0) ?? "–"}`}
           label={text.satisfaction}
           color="#06b6d4"
+          note={`Δ ${formatDelta(satDelta)}`}
+          tone={Number.isFinite(satDelta) ? (satDelta >= 0 ? "positive" : "negative") : "neutral"}
         />
         <MetricCard
           value={`${rep[0]?.toFixed(0) ?? "–"} → ${rep[rep.length - 1]?.toFixed(0) ?? "–"}`}
           label={text.reputation}
           color="#8b5cf6"
+          note={`Δ ${formatDelta(repDelta)}`}
+          tone={Number.isFinite(repDelta) ? (repDelta >= 0 ? "positive" : "negative") : "neutral"}
         />
       </div>
 
@@ -210,6 +316,7 @@ export default async function ReportPage({
         toolCallsPerDay={toolCallsPerDay}
         productSales={productSales}
         endGameDays={endGameDays}
+        startingCash={Math.round(inferredStartingCash)}
         locale={locale}
       />
 
