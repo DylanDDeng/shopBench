@@ -12,13 +12,25 @@ const ROOT = resolve(__dirname, "../../..");
 type ReasoningEffort = "low" | "medium" | "high" | "xhigh";
 type Provider = "openrouter" | "ark";
 
-const MODEL_PRESETS: Record<string, { openrouterModel: string; reasoningEffort: ReasoningEffort }> = {
+interface ModelPreset {
+  providerModel: string;
+  reasoningEffort?: ReasoningEffort;
+  reasoningEnabled?: boolean;
+}
+
+const MODEL_PRESETS: Record<string, ModelPreset> = {
   // Preferred alias: show as custom label, but call OpenRouter with codex ID at xhigh effort
-  "gpt-5.3-codex-xhigh": { openrouterModel: "openai/gpt-5.3-codex", reasoningEffort: "xhigh" },
-  "gpt-5.3-xhigh": { openrouterModel: "openai/gpt-5.3-codex", reasoningEffort: "xhigh" },
+  "gpt-5.3-codex-xhigh": { providerModel: "openai/gpt-5.3-codex", reasoningEffort: "xhigh" },
+  "gpt-5.3-xhigh": { providerModel: "openai/gpt-5.3-codex", reasoningEffort: "xhigh" },
   // Backward-compatible typo aliases
-  "gpt-5.3-codex-xhgih": { openrouterModel: "openai/gpt-5.3-codex", reasoningEffort: "xhigh" },
-  "gpt-5.3-xhgih": { openrouterModel: "openai/gpt-5.3-codex", reasoningEffort: "xhigh" },
+  "gpt-5.3-codex-xhgih": { providerModel: "openai/gpt-5.3-codex", reasoningEffort: "xhigh" },
+  "gpt-5.3-xhgih": { providerModel: "openai/gpt-5.3-codex", reasoningEffort: "xhigh" },
+  // DeepSeek thinking alias:
+  // - show model as deepseek-v3.2-thinking in result/UI
+  // - call OpenRouter with base ID deepseek/deepseek-v3.2
+  // - force reasoning.enabled=true
+  "deepseek-v3.2-thinking": { providerModel: "deepseek/deepseek-v3.2", reasoningEnabled: true },
+  "deepseek/deepseek-v3.2-thinking": { providerModel: "deepseek/deepseek-v3.2", reasoningEnabled: true },
 };
 
 function isClaudeModelId(modelId: string): boolean {
@@ -98,13 +110,13 @@ async function main() {
   }
 
   const preset = MODEL_PRESETS[baseModelArg.toLowerCase()] ?? MODEL_PRESETS[modelArg.toLowerCase()];
-  const providerModel = getArg(["--provider-model", "--openrouter-model"]) ?? preset?.openrouterModel ?? baseModelArg;
+  const providerModel = getArg(["--provider-model", "--openrouter-model"]) ?? preset?.providerModel ?? baseModelArg;
 
   // Claude dual mode:
   // - anthropic/claude-xxx => reasoning disabled
   // - anthropic/claude-xxx-thinking => reasoning enabled (while calling base OpenRouter ID)
-  let reasoningEnabled: boolean | undefined;
-  if (provider === "openrouter" && isClaudeModelId(baseModelArg)) {
+  let reasoningEnabled: boolean | undefined = preset?.reasoningEnabled;
+  if (reasoningEnabled === undefined && provider === "openrouter" && isClaudeModelId(baseModelArg)) {
     reasoningEnabled = isClaudeThinking;
   }
   const thinkingOn = args.includes("--thinking");

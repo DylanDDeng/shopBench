@@ -12,6 +12,8 @@ const MODEL_ID_META: Record<string, ModelMeta> = {
   "gpt-5.3-xhigh": { provider: "openai", region: "us", openness: "closed" },
   "gpt-5.3-codex-xhgih": { provider: "openai", region: "us", openness: "closed" },
   "gpt-5.3-xhgih": { provider: "openai", region: "us", openness: "closed" },
+  "deepseek-v3.2": { provider: "deepseek", region: "cn", openness: "open" },
+  "deepseek-v3.2-thinking": { provider: "deepseek", region: "cn", openness: "open" },
 };
 
 const PROVIDER_META: Record<string, Omit<ModelMeta, "provider">> = {
@@ -48,6 +50,9 @@ export function getModelMeta(modelId: string): ModelMeta {
   }
   if (normalizedId.startsWith("bytedance-seed/")) {
     return { provider: "bytedance-seed", region: "cn", openness: "closed" };
+  }
+  if (normalizedId.startsWith("deepseek-")) {
+    return { provider: "deepseek", region: "cn", openness: "open" };
   }
 
   return { provider: provider || "unknown", region: "unknown", openness: "unknown" };

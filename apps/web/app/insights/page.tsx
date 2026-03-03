@@ -15,6 +15,7 @@ import { DeepDiveReports, type DeepDiveReport } from "./DeepDiveReports";
 import { ModelDiagnosticsPanel } from "./ModelDiagnosticsPanel";
 import type { DerivedMetrics, SimulationResult } from "@/lib/types";
 import type { Locale } from "@/lib/i18n";
+import { getModelMeta } from "@/lib/modelMeta";
 
 /* ─── Per-model analysis data ─── */
 
@@ -66,6 +67,35 @@ interface ModelDiagnostic {
   didWell: string[];
   didPoorly: string[];
   criticalDays: DiagnosticDay[];
+}
+
+type ErrorCategoryKey =
+  | "purchase_minimum_not_met"
+  | "set_price_no_inventory"
+  | "unknown_tool"
+  | "schema_param_invalid"
+  | "state_precondition_failed"
+  | "other";
+
+interface RegionErrorSummary {
+  runs: number;
+  calls: number;
+  errors: number;
+  errorRate: number;
+}
+
+interface RegionErrorComparisonCategory {
+  key: ErrorCategoryKey;
+  cnCount: number;
+  usCount: number;
+  cnShare: number;
+  usShare: number;
+}
+
+interface RegionErrorComparison {
+  cn: RegionErrorSummary;
+  us: RegionErrorSummary;
+  categories: RegionErrorComparisonCategory[];
 }
 
 type PhaseKey = "early" | "mid" | "late";
@@ -137,6 +167,97 @@ function pearsonR(xs: number[], ys: number[]): number {
   }
   const den = Math.sqrt(denX * denY);
   return den === 0 ? 0 : num / den;
+}
+
+function classifyToolError(toolName: string, errorMsg: string): ErrorCategoryKey {
+  if (toolName === "purchase_goods" && /below minimum/i.test(errorMsg)) {
+    return "purchase_minimum_not_met";
+  }
+  if (toolName === "set_price" && /no inventory for/i.test(errorMsg)) {
+    return "set_price_no_inventory";
+  }
+  if (/unknown tool:/i.test(errorMsg)) {
+    return "unknown_tool";
+  }
+  if (/invalid|missing|required|must be|schema/i.test(errorMsg)) {
+    return "schema_param_invalid";
+  }
+  if (/cannot|insufficient|already have|not found|no supplier found/i.test(errorMsg)) {
+    return "state_precondition_failed";
+  }
+  return "other";
+}
+
+function buildRegionErrorComparison(results: SimulationResult[]): RegionErrorComparison {
+  const initCategoryCounts = (): Record<ErrorCategoryKey, number> => ({
+    purchase_minimum_not_met: 0,
+    set_price_no_inventory: 0,
+    unknown_tool: 0,
+    schema_param_invalid: 0,
+    state_precondition_failed: 0,
+    other: 0,
+  });
+
+  const initSide = () => ({
+    runs: 0,
+    calls: 0,
+    errors: 0,
+    categories: initCategoryCounts(),
+  });
+
+  const cn = initSide();
+  const us = initSide();
+
+  for (const result of results) {
+    const meta = getModelMeta(result.model);
+    const side = meta.region === "cn" ? cn : meta.region === "us" ? us : null;
+    if (!side) continue;
+    side.runs += 1;
+
+    for (const day of result.days) {
+      for (const tc of day.toolCalls) {
+        side.calls += 1;
+        const error = (tc.result && typeof tc.result === "object" && "error" in (tc.result as Record<string, unknown>))
+          ? String((tc.result as Record<string, unknown>).error)
+          : null;
+        if (!error) continue;
+        side.errors += 1;
+        const category = classifyToolError(tc.name, error);
+        side.categories[category] += 1;
+      }
+    }
+  }
+
+  const categories: ErrorCategoryKey[] = [
+    "purchase_minimum_not_met",
+    "set_price_no_inventory",
+    "unknown_tool",
+    "schema_param_invalid",
+    "state_precondition_failed",
+    "other",
+  ];
+
+  return {
+    cn: {
+      runs: cn.runs,
+      calls: cn.calls,
+      errors: cn.errors,
+      errorRate: cn.calls > 0 ? cn.errors / cn.calls : 0,
+    },
+    us: {
+      runs: us.runs,
+      calls: us.calls,
+      errors: us.errors,
+      errorRate: us.calls > 0 ? us.errors / us.calls : 0,
+    },
+    categories: categories.map(key => ({
+      key,
+      cnCount: cn.categories[key],
+      usCount: us.categories[key],
+      cnShare: cn.errors > 0 ? cn.categories[key] / cn.errors : 0,
+      usShare: us.errors > 0 ? us.categories[key] / us.errors : 0,
+    })),
+  };
 }
 
 /* ─── Strategy summary text ─── */
@@ -401,6 +522,7 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
     derivedMetrics,
     locale,
   });
+  const regionErrorComparison = buildRegionErrorComparison(results);
 
   return (
     <div className="container">
@@ -462,6 +584,7 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
         scatterData={scatterData}
         cashConversionData={cashConversionData}
         cashGapData={cashGapData}
+        regionErrorComparison={regionErrorComparison}
         strategyGroups={strategyGroups.map(g => ({
           type: g.type,
           color: g.color,

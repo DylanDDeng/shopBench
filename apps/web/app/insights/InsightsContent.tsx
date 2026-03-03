@@ -45,11 +45,41 @@ interface CashGapDataPoint {
   color: string;
 }
 
+type ErrorCategoryKey =
+  | "purchase_minimum_not_met"
+  | "set_price_no_inventory"
+  | "unknown_tool"
+  | "schema_param_invalid"
+  | "state_precondition_failed"
+  | "other";
+
+interface RegionErrorSummary {
+  runs: number;
+  calls: number;
+  errors: number;
+  errorRate: number;
+}
+
+interface RegionErrorComparisonCategory {
+  key: ErrorCategoryKey;
+  cnCount: number;
+  usCount: number;
+  cnShare: number;
+  usShare: number;
+}
+
+interface RegionErrorComparison {
+  cn: RegionErrorSummary;
+  us: RegionErrorSummary;
+  categories: RegionErrorComparisonCategory[];
+}
+
 interface InsightsContentProps {
   scatterData: ScatterDataPoint[];
   strategyGroups: StrategyGroupData[];
   cashConversionData: CashConversionDataPoint[];
   cashGapData: CashGapDataPoint[];
+  regionErrorComparison: RegionErrorComparison;
   locale?: Locale;
 }
 
@@ -58,6 +88,7 @@ export function InsightsContent({
   strategyGroups,
   cashConversionData,
   cashGapData,
+  regionErrorComparison,
   locale = "en",
 }: InsightsContentProps) {
   const isZh = locale === "zh";
@@ -67,6 +98,27 @@ export function InsightsContent({
   const bestConversion = [...cashConversionData].sort((a, b) => b.value - a.value)[0];
   const strongestStrategy = [...strategyGroups].sort((a, b) => b.avgNetProfit - a.avgNetProfit)[0];
   const largestStrategy = [...strategyGroups].sort((a, b) => b.models.length - a.models.length)[0];
+  const errorRateGapPctPoint = (regionErrorComparison.cn.errorRate - regionErrorComparison.us.errorRate) * 100;
+  const sortedErrorCategories = [...regionErrorComparison.categories]
+    .sort((a, b) => Math.abs((b.cnShare - b.usShare)) - Math.abs((a.cnShare - a.usShare)));
+
+  const ERROR_CATEGORY_LABELS: Record<ErrorCategoryKey, string> = isZh
+    ? {
+        purchase_minimum_not_met: "采购未达起订额",
+        set_price_no_inventory: "无库存调价",
+        unknown_tool: "工具名错误",
+        schema_param_invalid: "参数不合法",
+        state_precondition_failed: "前置条件不满足",
+        other: "其他",
+      }
+    : {
+        purchase_minimum_not_met: "Purchase below minimum order",
+        set_price_no_inventory: "Set price without inventory",
+        unknown_tool: "Unknown tool name",
+        schema_param_invalid: "Invalid parameters",
+        state_precondition_failed: "Precondition not met",
+        other: "Other",
+      };
 
   return (
     <>
@@ -97,6 +149,73 @@ export function InsightsContent({
         </div>
         <div className="insights-chart-shell">
           <PriceVsProfitScatter data={scatterData} height={400} locale={locale} />
+        </div>
+      </section>
+
+      <section className="insights-panel">
+        <div className="insights-block-head">
+          <h2>{isZh ? "中国 vs 美国：工具错误对比" : "China vs US: Tool Error Comparison"}</h2>
+          <span className="insights-block-subtitle">
+            {isZh ? "按模型地区聚合，口径=工具调用错误率与错误结构占比" : "Aggregated by model region: tool error rate + error composition"}
+          </span>
+        </div>
+        <div className="insights-chip-row">
+          <div className="insights-chip">
+            <span>{isZh ? "中国模型错误率" : "China Error Rate"}</span>
+            <strong>{(regionErrorComparison.cn.errorRate * 100).toFixed(2)}% ({regionErrorComparison.cn.errors}/{regionErrorComparison.cn.calls})</strong>
+          </div>
+          <div className="insights-chip">
+            <span>{isZh ? "美国模型错误率" : "US Error Rate"}</span>
+            <strong>{(regionErrorComparison.us.errorRate * 100).toFixed(2)}% ({regionErrorComparison.us.errors}/{regionErrorComparison.us.calls})</strong>
+          </div>
+          <div className="insights-chip">
+            <span>{isZh ? "差值（中-美）" : "Gap (CN - US)"}</span>
+            <strong style={{ color: errorRateGapPctPoint >= 0 ? "#ef4444" : "#10b981" }}>
+              {errorRateGapPctPoint >= 0 ? "+" : ""}{errorRateGapPctPoint.toFixed(2)} {isZh ? "个百分点" : "pp"}
+            </strong>
+          </div>
+          <div className="insights-chip">
+            <span>{isZh ? "样本规模" : "Sample Size"}</span>
+            <strong>
+              CN {regionErrorComparison.cn.runs} {isZh ? "个模型" : "runs"} · US {regionErrorComparison.us.runs} {isZh ? "个模型" : "runs"}
+            </strong>
+          </div>
+        </div>
+
+        <div className="insights-chart-shell insights-subchart" style={{ marginTop: "0.9rem" }}>
+          <h3>{isZh ? "错误原因结构（占该地区错误总数）" : "Error Composition (% of each region's total errors)"}</h3>
+          <p>
+            {isZh
+              ? "看“结构占比”而不是绝对次数，能更清楚比较两个地区模型的典型失误模式。"
+              : "Use composition share instead of raw counts to compare typical failure patterns across regions."}
+          </p>
+          <div style={{ overflowX: "auto" }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>{isZh ? "错误类别" : "Error Category"}</th>
+                  <th className="text-right">{isZh ? "中国（占比 / 次数）" : "China (share / count)"}</th>
+                  <th className="text-right">{isZh ? "美国（占比 / 次数）" : "US (share / count)"}</th>
+                  <th className="text-right">{isZh ? "差值（中-美）" : "Delta (CN - US)"}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedErrorCategories.map(row => {
+                  const delta = (row.cnShare - row.usShare) * 100;
+                  return (
+                    <tr key={row.key}>
+                      <td>{ERROR_CATEGORY_LABELS[row.key]}</td>
+                      <td className="text-right">{(row.cnShare * 100).toFixed(1)}% / {row.cnCount}</td>
+                      <td className="text-right">{(row.usShare * 100).toFixed(1)}% / {row.usCount}</td>
+                      <td className="text-right" style={{ color: delta >= 0 ? "#ef4444" : "#10b981" }}>
+                        {delta >= 0 ? "+" : ""}{delta.toFixed(1)} {isZh ? "个百分点" : "pp"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
