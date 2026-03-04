@@ -327,7 +327,6 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
             <option value="all">{text.filterAll}</option>
             <option value="open">{text.filterOpen}</option>
             <option value="closed">{text.filterClosed}</option>
-            <option value="unknown">{text.filterUnknown}</option>
           </select>
         </div>
         <div style={{ minWidth: 0 }}>
@@ -340,8 +339,6 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
             <option value="all">{text.filterAll}</option>
             <option value="cn">{text.filterRegionCn}</option>
             <option value="us">{text.filterRegionUs}</option>
-            <option value="other">{text.filterRegionOther}</option>
-            <option value="unknown">{text.filterRegionUnknown}</option>
           </select>
         </div>
         <div style={{ minWidth: 0 }}>
