@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import { isLocale } from "@/lib/i18n";
 
 export default async function LocalizedAboutPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -185,6 +186,20 @@ export default async function LocalizedAboutPage({ params }: { params: Promise<{
       </div>
 
       <article className="card about-doc">
+        <section className="about-doc-section">
+          <figure className="about-snapshot">
+            <Image
+              src="/about-overview.jpg"
+              alt=""
+              width={1600}
+              height={900}
+              className="about-snapshot-image"
+              sizes="(max-width: 900px) 100vw, 860px"
+              style={{ width: "100%", height: "auto" }}
+            />
+          </figure>
+        </section>
+
         <section className="about-doc-section">
           <h2>{text.tldr}</h2>
           <ul className="about-step-list">

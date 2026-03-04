@@ -2,6 +2,8 @@
 
 一个用于评估 LLM Agent 经营能力的基准测试。
 
+<img src="apps/web/public/about-overview.jpg" alt="ShopBench leaderboard overview" width="980" />
+
 ---
 
 ## 1) 这个 Benchmark 是做什么的
