@@ -322,7 +322,9 @@ export function getModelDisplayName(model: string): string {
     return model.split("/").pop() ?? model;
   }
   const raw = MODEL_DISPLAY_NAMES[model] ?? model.split("/").pop() ?? model;
-  return raw.replace(/xhgih/gi, "xhigh");
+  return raw
+    .replace(/xhgih/gi, "xhigh")
+    .replace(/-hgih\b/gi, "-high");
 }
 
 const MODEL_COLORS: string[] = [
