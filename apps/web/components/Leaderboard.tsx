@@ -51,6 +51,7 @@ const LEADERBOARD_TEXT: Record<Locale, {
   filterOpen: string;
   filterClosed: string;
   filterUnknown: string;
+  filterStealth: string;
   filterRegionCn: string;
   filterRegionUs: string;
   filterRegionOther: string;
@@ -91,6 +92,7 @@ const LEADERBOARD_TEXT: Record<Locale, {
     filterOpen: "Open-source",
     filterClosed: "Closed-source",
     filterUnknown: "Unknown",
+    filterStealth: "Stealth",
     filterRegionCn: "China",
     filterRegionUs: "United States",
     filterRegionOther: "Other",
@@ -131,6 +133,7 @@ const LEADERBOARD_TEXT: Record<Locale, {
     filterOpen: "开源",
     filterClosed: "闭源",
     filterUnknown: "未知",
+    filterStealth: "保密",
     filterRegionCn: "中国",
     filterRegionUs: "美国",
     filterRegionOther: "其他",
@@ -237,6 +240,7 @@ function ModelNameMarquee({ name }: { name: string }) {
 
 function getModelLogo(model: string): string | null {
   const key = model.toLowerCase();
+  if (key.includes("hunter-alpha")) return "/leaderboard/openrouter.svg";
   if (key.includes("claude")) return "/leaderboard/claude-color.svg";
   if (key.includes("doubao") || key.includes("bytedance-seed")) return "/leaderboard/doubao-color.svg";
   if (key.includes("stepfun") || key.includes("step-")) return "/leaderboard/stepfun-color.svg";
@@ -254,6 +258,7 @@ function getModelLogo(model: string): string | null {
 function getOpennessLabel(openness: ModelOpenness, text: typeof LEADERBOARD_TEXT[Locale]) {
   if (openness === "open") return text.filterOpen;
   if (openness === "closed") return text.filterClosed;
+  if (openness === "stealth") return text.filterStealth;
   return text.filterUnknown;
 }
 
@@ -261,6 +266,7 @@ function getRegionLabel(region: ModelRegion, text: typeof LEADERBOARD_TEXT[Local
   if (region === "cn") return text.filterRegionCn;
   if (region === "us") return text.filterRegionUs;
   if (region === "other") return text.filterRegionOther;
+  if (region === "stealth") return text.filterStealth;
   return text.filterRegionUnknown;
 }
 

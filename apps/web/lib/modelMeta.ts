@@ -1,5 +1,5 @@
-export type ModelRegion = "cn" | "us" | "other" | "unknown";
-export type ModelOpenness = "open" | "closed" | "unknown";
+export type ModelRegion = "cn" | "us" | "other" | "unknown" | "stealth";
+export type ModelOpenness = "open" | "closed" | "unknown" | "stealth";
 
 export interface ModelMeta {
   provider: string;
@@ -14,6 +14,9 @@ const MODEL_ID_META: Record<string, ModelMeta> = {
   "gpt-5.3-xhgih": { provider: "openai", region: "us", openness: "closed" },
   "deepseek-v3.2": { provider: "deepseek", region: "cn", openness: "open" },
   "deepseek-v3.2-thinking": { provider: "deepseek", region: "cn", openness: "open" },
+  "openrouter/hunter-alpha": { provider: "openrouter", region: "stealth", openness: "stealth" },
+  "hunter-alpha": { provider: "openrouter", region: "stealth", openness: "stealth" },
+  "hunter-alpha-thinking": { provider: "openrouter", region: "stealth", openness: "stealth" },
 };
 
 const PROVIDER_META: Record<string, Omit<ModelMeta, "provider">> = {
