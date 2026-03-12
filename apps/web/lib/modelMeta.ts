@@ -17,6 +17,9 @@ const MODEL_ID_META: Record<string, ModelMeta> = {
   "openrouter/hunter-alpha": { provider: "openrouter", region: "stealth", openness: "stealth" },
   "hunter-alpha": { provider: "openrouter", region: "stealth", openness: "stealth" },
   "hunter-alpha-thinking": { provider: "openrouter", region: "stealth", openness: "stealth" },
+  "openrouter/healer-alpha": { provider: "openrouter", region: "stealth", openness: "stealth" },
+  "healer-alpha": { provider: "openrouter", region: "stealth", openness: "stealth" },
+  "healer-alpha-thinking": { provider: "openrouter", region: "stealth", openness: "stealth" },
 };
 
 const PROVIDER_META: Record<string, Omit<ModelMeta, "provider">> = {
