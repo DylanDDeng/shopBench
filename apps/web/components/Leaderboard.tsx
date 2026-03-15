@@ -247,7 +247,7 @@ function getModelLogo(model: string): string | null {
   if (key.includes("gemini")) return "/leaderboard/gemini-color.svg";
   if (key.includes("deepseek")) return "/leaderboard/deepseek-color.svg";
   if (key.includes("minimax")) return "/leaderboard/minimax-color.svg";
-  if (key.includes("glm") || key.includes("zai")) return "/leaderboard/zai.svg";
+  if (key.includes("glm") || key.includes("zai") || key.includes("pony-alpha")) return "/leaderboard/zai.svg";
   if (key.includes("qwen")) return "/leaderboard/qwen-color.svg";
   if (key.includes("gpt") || key.includes("openai")) return "/leaderboard/openai.svg";
   if (key.includes("grok")) return "/leaderboard/grok.svg";

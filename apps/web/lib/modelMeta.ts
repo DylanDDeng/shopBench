@@ -20,6 +20,8 @@ const MODEL_ID_META: Record<string, ModelMeta> = {
   "openrouter/healer-alpha": { provider: "openrouter", region: "stealth", openness: "stealth" },
   "healer-alpha": { provider: "openrouter", region: "stealth", openness: "stealth" },
   "healer-alpha-thinking": { provider: "openrouter", region: "stealth", openness: "stealth" },
+  "pony-alpha-2": { provider: "bigmodel", region: "cn", openness: "open" },
+  "pony-alpha-2-thinking": { provider: "bigmodel", region: "cn", openness: "open" },
 };
 
 const PROVIDER_META: Record<string, Omit<ModelMeta, "provider">> = {
