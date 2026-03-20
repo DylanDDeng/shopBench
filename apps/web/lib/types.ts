@@ -183,6 +183,7 @@ export interface AggregatedLeaderboardEntry {
   runCount: number;
   positiveRunCount: number;
   positiveRunRate: number;
+  trimmedMeanFinalScore: number;
   medianFinalScore: number;
   finalScoreIqr: number;
   medianGrossMargin: number;

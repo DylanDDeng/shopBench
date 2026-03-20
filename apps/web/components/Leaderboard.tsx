@@ -68,8 +68,8 @@ const LEADERBOARD_TEXT: Record<Locale, {
   en: {
     rank: "Rank",
     model: "Model",
-    netCash: "Median 30-Day Net Cash (¥)",
-    netCashHelp: "Primary ranking metric. If a model has multiple runs, we rank by median net cash across the 5 most recent runs.",
+    netCash: "Trimmed Mean 30-Day Net Cash (¥)",
+    netCashHelp: "Primary ranking metric. We use the 5 most recent runs, drop the best and worst score when possible, and rank by the trimmed-mean net cash. Median is shown below as reference.",
     stability: "Stability (IQR)",
     stabilityHelp: "IQR = P75 - P25 of 30-Day Net Cash across the 5 most recent runs. Smaller means more stable.",
     grossMargin: "Median Gross Margin",
@@ -85,9 +85,9 @@ const LEADERBOARD_TEXT: Record<Locale, {
     bestRun: "Best Run",
     worstRun: "Worst Run",
     metricGuideTitle: "Metric definitions (important)",
-    metricGuideIntro: "Stable Ranking aggregates the 5 most recent runs of the same model. Single-run pages remain available from the action menu.",
-    metricGuideAggregation: "Leaderboard rank is based on median 30-Day Net Cash across the 5 most recent runs currently present for that model.",
-    metricGuideNetCash: "30-Day Net Cash = final cash - starting cash - outstanding loans. Median net cash is the primary ranking metric.",
+    metricGuideIntro: "Stable Ranking aggregates the 5 most recent runs of the same model. We rank by trimmed mean and keep the median run available from the action menu.",
+    metricGuideAggregation: "Leaderboard rank is based on trimmed mean 30-Day Net Cash across the 5 most recent runs currently present for that model. When there are at least 3 runs, we drop the best and worst score first.",
+    metricGuideNetCash: "30-Day Net Cash = final cash - starting cash - outstanding loans. The main ranking metric is the trimmed mean across the 5 most recent runs; median is shown as a reference value.",
     metricGuideGrossMargin: "Gross Margin is a ratio, not absolute cash generated. We show the median gross margin across the 5 most recent runs.",
     metricGuideErrorRate: "Tool Call Error Rate is also aggregated by median across the 5 most recent runs, so one bad run does not dominate the model's headline metric.",
     metricGuideInventoryNote: "End-of-run inventory is not included in final score in this 30-day setup.",
@@ -116,8 +116,8 @@ const LEADERBOARD_TEXT: Record<Locale, {
   zh: {
     rank: "排名",
     model: "模型",
-    netCash: "30天净现金中位数 (¥)",
-    netCashHelp: "主排名指标。如果同一模型有多次运行，按最近 5 次运行的 30 天净现金中位数排序。",
+    netCash: "30天净现金去极值平均值 (¥)",
+    netCashHelp: "主排名指标。取最近 5 次运行，在样本足够时去掉最高和最低分，再按 30 天净现金去极值平均排序。下方保留中位数作参考。",
     stability: "稳定性（IQR）",
     stabilityHelp: "IQR = 最近 5 次运行的 30 天净现金 P75 - P25。越小表示越稳定。",
     grossMargin: "毛利率中位数",
@@ -133,9 +133,9 @@ const LEADERBOARD_TEXT: Record<Locale, {
     bestRun: "最佳单次",
     worstRun: "最差单次",
     metricGuideTitle: "指标口径说明（重要）",
-    metricGuideIntro: "稳定性榜单会聚合同一模型最近 5 次运行。单次报告与回放仍然可以通过操作菜单进入。",
-    metricGuideAggregation: "首页榜单按同一模型最近 5 次运行的 30 天净现金中位数排序。",
-    metricGuideNetCash: "30天净现金 = 期末现金 - 初始现金 - 未偿贷款。中位数净现金是正式排名指标。",
+    metricGuideIntro: "稳定性榜单会聚合同一模型最近 5 次运行。主排序按去极值平均，单次报告与回放仍然可以通过操作菜单进入。",
+    metricGuideAggregation: "首页榜单按同一模型最近 5 次运行的 30 天净现金去极值平均排序；样本足够时先去掉最高和最低分。",
+    metricGuideNetCash: "30天净现金 = 期末现金 - 初始现金 - 未偿贷款。正式排名指标是最近 5 次运行的去极值平均值；中位数作为参考展示。",
     metricGuideGrossMargin: "毛利率是比例指标，不等于实际回笼现金规模。这里展示的是最近 5 次运行后的毛利率中位数。",
     metricGuideErrorRate: "工具调用错误率也按最近 5 次运行的中位数聚合，避免单次异常 run 过度影响模型总览。",
     metricGuideInventoryNote: "在当前 30 天评测中，期末库存不计入最终得分。",
@@ -488,11 +488,13 @@ export function Leaderboard({ entries, locale = "en" }: LeaderboardProps) {
                   </div>
                 </td>
                 <td className="text-center cash-change-cell">
-                  <div className={entry.medianFinalScore >= 0 ? "profit-positive" : "profit-negative"}>
-                    {formatYen(entry.medianFinalScore)}
+                  <div className={entry.trimmedMeanFinalScore >= 0 ? "profit-positive" : "profit-negative"}>
+                    {formatYen(entry.trimmedMeanFinalScore)}
                   </div>
                   <div className={`cash-change-sub ${entry.positiveRunRate >= 0.5 ? "profit-positive" : "profit-negative"}`}>
-                    {entry.positiveRunCount}/{entry.runCount} {text.positiveRuns}
+                    {locale === "zh"
+                      ? `中位数 ${formatYen(entry.medianFinalScore)} · ${entry.positiveRunCount}/${entry.runCount} ${text.positiveRuns}`
+                      : `Median ${formatYen(entry.medianFinalScore)} · ${entry.positiveRunCount}/${entry.runCount} ${text.positiveRuns}`}
                   </div>
                 </td>
                 <td className="text-center">

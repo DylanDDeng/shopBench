@@ -47,6 +47,17 @@ function quantile(values: number[], q: number): number {
   return sorted[lower] * (1 - weight) + sorted[upper] * weight;
 }
 
+function trimmedMean(values: number[]): number {
+  if (values.length === 0) return 0;
+  if (values.length <= 2) {
+    return values.reduce((sum, value) => sum + value, 0) / values.length;
+  }
+
+  const sorted = [...values].sort((a, b) => a - b);
+  const trimmed = sorted.slice(1, -1);
+  return trimmed.reduce((sum, value) => sum + value, 0) / trimmed.length;
+}
+
 function getStabilityBand(iqr: number): AggregatedLeaderboardEntry["stabilityBand"] {
   if (iqr <= 1500) return "stable";
   if (iqr <= 3000) return "medium";
@@ -90,6 +101,7 @@ export function getAggregatedLeaderboard(results: SimulationResult[] = getAllRes
       const scores = recentPairs.map(pair => pair.result.finalScore);
       const grossMargins = recentPairs.map(pair => pair.derived.grossMargin);
       const errorRates = recentPairs.map(pair => pair.derived.errorRate);
+      const trimmedMeanFinalScore = trimmedMean(scores);
       const medianFinalScore = quantile(scores, 0.5);
       const finalScoreIqr = quantile(scores, 0.75) - quantile(scores, 0.25);
       const medianRun = selectMedianRun(recentPairs, medianFinalScore);
@@ -102,6 +114,7 @@ export function getAggregatedLeaderboard(results: SimulationResult[] = getAllRes
         runCount: recentPairs.length,
         positiveRunCount: scores.filter(score => score > 0).length,
         positiveRunRate: scores.filter(score => score > 0).length / recentPairs.length,
+        trimmedMeanFinalScore,
         medianFinalScore,
         finalScoreIqr,
         medianGrossMargin: quantile(grossMargins, 0.5),
@@ -112,5 +125,5 @@ export function getAggregatedLeaderboard(results: SimulationResult[] = getAllRes
         worstRunId: worstRun.result.id,
       } satisfies AggregatedLeaderboardEntry;
     })
-    .sort((a, b) => b.medianFinalScore - a.medianFinalScore);
+    .sort((a, b) => b.trimmedMeanFinalScore - a.trimmedMeanFinalScore);
 }
