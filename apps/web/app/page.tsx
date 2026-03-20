@@ -41,7 +41,7 @@ export default function Home() {
       <div className="page-header">
         <h1>ShopBench Leaderboard</h1>
         <p>
-          Stable Ranking groups repeated runs by model and ranks them by median 30-Day Net Cash. Gross margin and tool call error rate still highlight different strengths.
+          Stable Ranking uses each model's 5 most recent runs and ranks them by median 30-Day Net Cash. Gross margin and tool call error rate still highlight different strengths.
         </p>
       </div>
 
@@ -64,14 +64,14 @@ export default function Home() {
               </div>
               <p className="top-signal-label">Overall Winner</p>
               <p className="top-signal-value">{bestModelName}</p>
-              <p className="top-signal-meta">Highest median net cash across repeated runs</p>
+              <p className="top-signal-meta">Highest median net cash across the 5 most recent runs</p>
             </article>
 
             <article className="top-signal top-signal-cash">
               <div className="top-signal-mark top-signal-mark-symbol" aria-hidden>¥</div>
               <p className="top-signal-label">Best Median 30-Day Net Cash</p>
               <p className="top-signal-value top-signal-value-cash">{best ? formatYen(best.medianFinalScore) : "–"}</p>
-              <p className="top-signal-meta">Typical cash outcome across repeated runs</p>
+              <p className="top-signal-meta">Typical cash outcome across the 5 most recent runs</p>
             </article>
 
             <article className={`top-signal ${lowestErrorLogo?.includes("claude") ? "top-signal-claude" : "top-signal-error"}`} title={lowestErrorEntry?.displayName ?? "–"}>

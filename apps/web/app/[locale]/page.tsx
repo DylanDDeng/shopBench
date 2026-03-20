@@ -32,13 +32,13 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
     ? {
         title: "ShopBench 排行榜",
         subtitle:
-          "稳定性榜单会把同一模型的重复运行聚合起来，并按 30 天净现金中位数排序。毛利率与工具调用错误率仍用于观察不同能力维度。",
+          "稳定性榜单会取同一模型最近 5 次运行，并按 30 天净现金中位数排序。毛利率与工具调用错误率仍用于观察不同能力维度。",
         empty: "暂无模拟结果。请先运行 benchmark：",
         topSignals: "核心信号",
         overallWinner: "总冠军",
-        overallWinnerMeta: "重复运行下的中位净现金最高",
+        overallWinnerMeta: "最近 5 次运行下的中位净现金最高",
         bestCash: "30天净现金中位数最佳",
-        bestCashMeta: "重复运行后的典型现金结果领先",
+        bestCashMeta: "最近 5 次运行后的典型现金结果领先",
         lowestError: "工具调用错误率最低",
         lowestErrorMeta: "中位错误率最低",
         bestMargin: "毛利率最佳",
@@ -48,13 +48,13 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
     : {
         title: "ShopBench Leaderboard",
         subtitle:
-          "Stable Ranking groups repeated runs by model and ranks them by median 30-Day Net Cash. Gross margin and tool call error rate still highlight different strengths.",
+          "Stable Ranking uses each model's 5 most recent runs and ranks them by median 30-Day Net Cash. Gross margin and tool call error rate still highlight different strengths.",
         empty: "No simulation results yet. Run a benchmark first:",
         topSignals: "Top Signals",
         overallWinner: "Overall Winner",
-        overallWinnerMeta: "Highest median net cash across repeated runs",
+        overallWinnerMeta: "Highest median net cash across the 5 most recent runs",
         bestCash: "Best Median 30-Day Net Cash",
-        bestCashMeta: "Top typical cash outcome across repeated runs",
+        bestCashMeta: "Top typical cash outcome across the 5 most recent runs",
         lowestError: "Lowest Tool Call Error Rate",
         lowestErrorMeta: "Lowest median tool error rate",
         bestMargin: "Best Gross Margin",

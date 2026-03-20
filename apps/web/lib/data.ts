@@ -9,6 +9,7 @@ export * from "./types";
 /* ─── Data Loading (server-only) ─── */
 
 const DATA_DIR = resolve(process.cwd(), "data");
+const LEADERBOARD_RECENT_RUN_LIMIT = 5;
 
 export function getAllResults(): SimulationResult[] {
   try {
@@ -83,21 +84,24 @@ export function getAggregatedLeaderboard(results: SimulationResult[] = getAllRes
 
   return [...groups.values()]
     .map(({ displayName, pairs }) => {
-      const scores = pairs.map(pair => pair.result.finalScore);
-      const grossMargins = pairs.map(pair => pair.derived.grossMargin);
-      const errorRates = pairs.map(pair => pair.derived.errorRate);
+      const recentPairs = [...pairs]
+        .sort((a, b) => Date.parse(b.result.completedAt) - Date.parse(a.result.completedAt))
+        .slice(0, LEADERBOARD_RECENT_RUN_LIMIT);
+      const scores = recentPairs.map(pair => pair.result.finalScore);
+      const grossMargins = recentPairs.map(pair => pair.derived.grossMargin);
+      const errorRates = recentPairs.map(pair => pair.derived.errorRate);
       const medianFinalScore = quantile(scores, 0.5);
       const finalScoreIqr = quantile(scores, 0.75) - quantile(scores, 0.25);
-      const medianRun = selectMedianRun(pairs, medianFinalScore);
-      const bestRun = pairs.reduce((best, candidate) => candidate.result.finalScore > best.result.finalScore ? candidate : best);
-      const worstRun = pairs.reduce((worst, candidate) => candidate.result.finalScore < worst.result.finalScore ? candidate : worst);
+      const medianRun = selectMedianRun(recentPairs, medianFinalScore);
+      const bestRun = recentPairs.reduce((best, candidate) => candidate.result.finalScore > best.result.finalScore ? candidate : best);
+      const worstRun = recentPairs.reduce((worst, candidate) => candidate.result.finalScore < worst.result.finalScore ? candidate : worst);
 
       return {
         model: medianRun.result.model,
         displayName,
-        runCount: pairs.length,
+        runCount: recentPairs.length,
         positiveRunCount: scores.filter(score => score > 0).length,
-        positiveRunRate: scores.filter(score => score > 0).length / pairs.length,
+        positiveRunRate: scores.filter(score => score > 0).length / recentPairs.length,
         medianFinalScore,
         finalScoreIqr,
         medianGrossMargin: quantile(grossMargins, 0.5),
