@@ -1,14 +1,29 @@
 "use client";
 
 import { LineChart, Line, ResponsiveContainer, ReferenceLine, XAxis, YAxis, Tooltip } from "recharts";
-import type { DayData } from "@/lib/types";
 import { formatYen } from "@/lib/types";
 import { CHART_THEME } from "@/lib/chartConfig";
 import type { Locale } from "@/lib/i18n";
 
+export interface ReplayDaySummary {
+  day: number;
+  cash: number;
+  customerSatisfaction: number;
+  reputation: number;
+  employeeCount: number;
+  inventoryUnits: number;
+  inventoryValue: number;
+  weather: string;
+  revenue: number;
+  netProfit: number;
+  customerCount: number;
+  toolCallCount: number;
+  errorCount: number;
+}
+
 interface DayContextPanelProps {
-  days: DayData[];
-  currentDay: number;
+  day: ReplayDaySummary;
+  cashTrend: { day: number; cash: number }[];
   locale?: Locale;
 }
 
@@ -59,19 +74,8 @@ const CONTEXT_TEXT: Record<Locale, {
   },
 };
 
-export function DayContextPanel({ days, currentDay, locale = "en" }: DayContextPanelProps) {
-  const day = days[currentDay];
-  if (!day) return null;
+export function DayContextPanel({ day, cashTrend, locale = "en" }: DayContextPanelProps) {
   const text = CONTEXT_TEXT[locale];
-
-  const ss = day.stateSnapshot;
-  const cashData = days.slice(0, currentDay + 1).map(d => ({
-    day: d.day,
-    cash: d.stateSnapshot?.cash ?? 0,
-  }));
-
-  const invValue = ss?.inventory?.reduce((s, it) => s + it.quantity * it.costPerUnit, 0) ?? 0;
-  const invCount = ss?.inventory?.reduce((s, it) => s + it.quantity, 0) ?? 0;
 
   return (
     <div className="replay-sidebar">
@@ -82,51 +86,51 @@ export function DayContextPanel({ days, currentDay, locale = "en" }: DayContextP
         <div className="context-stat">
           <span className="context-stat-label">{text.cash}</span>
           <span className="context-stat-value" style={{ color: "var(--accent-amber)" }}>
-            {formatYen(ss?.cash ?? 0)}
+            {formatYen(day.cash)}
           </span>
         </div>
         <div className="context-stat">
           <span className="context-stat-label">{text.satisfaction}</span>
-          <span className="context-stat-value">{ss?.customerSatisfaction ?? "–"}</span>
+          <span className="context-stat-value">{day.customerSatisfaction}</span>
         </div>
         <div className="context-stat">
           <span className="context-stat-label">{text.reputation}</span>
-          <span className="context-stat-value">{ss?.reputation ?? "–"}</span>
+          <span className="context-stat-value">{day.reputation}</span>
         </div>
         <div className="context-stat">
           <span className="context-stat-label">{text.employees}</span>
-          <span className="context-stat-value">{ss?.employees?.length ?? 0}</span>
+          <span className="context-stat-value">{day.employeeCount}</span>
         </div>
         <div className="context-stat">
           <span className="context-stat-label">{text.inventory}</span>
-          <span className="context-stat-value">{invCount} {text.units} ({formatYen(invValue)})</span>
+          <span className="context-stat-value">{day.inventoryUnits} {text.units} ({formatYen(day.inventoryValue)})</span>
         </div>
         <div className="context-stat">
           <span className="context-stat-label">{text.weather}</span>
-          <span className="context-stat-value">{ss?.weather ?? "–"}</span>
+          <span className="context-stat-value">{day.weather}</span>
         </div>
         <div className="context-stat">
           <span className="context-stat-label">{text.revenue}</span>
           <span className="context-stat-value" style={{ color: "var(--accent-blue)" }}>
-            {formatYen(day.settlement.revenue)}
+            {formatYen(day.revenue)}
           </span>
         </div>
         <div className="context-stat">
           <span className="context-stat-label">{text.dayProfit}</span>
-          <span className="context-stat-value" style={{ color: day.settlement.netProfit >= 0 ? "var(--accent-green)" : "var(--accent-red)" }}>
-            {formatYen(day.settlement.netProfit)}
+          <span className="context-stat-value" style={{ color: day.netProfit >= 0 ? "var(--accent-green)" : "var(--accent-red)" }}>
+            {formatYen(day.netProfit)}
           </span>
         </div>
         <div className="context-stat">
           <span className="context-stat-label">{text.customers}</span>
-          <span className="context-stat-value">{day.settlement.customerCount}</span>
+          <span className="context-stat-value">{day.customerCount}</span>
         </div>
       </div>
 
       <div className="context-panel">
         <h3 style={{ margin: "0 0 0.5rem" }}>{text.cashTrend}</h3>
         <ResponsiveContainer width="100%" height={160}>
-          <LineChart data={cashData}>
+          <LineChart data={cashTrend}>
             <XAxis dataKey="day" {...CHART_THEME.axis} />
             <YAxis {...CHART_THEME.axis} />
             <Tooltip {...CHART_THEME.tooltip} />

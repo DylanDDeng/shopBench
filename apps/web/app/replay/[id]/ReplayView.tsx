@@ -1,15 +1,14 @@
-"use client";
-
-import { useState } from "react";
 import type { DayData } from "@/lib/types";
 import { formatYen } from "@/lib/types";
-import { DayContextPanel } from "@/components/DayContextPanel";
+import { DayContextPanel, type ReplayDaySummary } from "@/components/DayContextPanel";
 import { ToolCallCard } from "@/components/ToolCallCard";
 import type { Locale } from "@/lib/i18n";
 
 interface ReplayViewProps {
-  days: DayData[];
-  resultId: string;
+  daySummaries: ReplayDaySummary[];
+  selectedDay: DayData | null;
+  selectedDayIndex: number;
+  basePath: string;
   locale?: Locale;
 }
 
@@ -29,7 +28,6 @@ const REPLAY_VIEW_TEXT: Record<Locale, {
   product: string;
   qty: string;
   expired: string;
-  noNotableActions: string;
 }> = {
   en: {
     noData: "No data available",
@@ -47,7 +45,6 @@ const REPLAY_VIEW_TEXT: Record<Locale, {
     product: "Product",
     qty: "Qty",
     expired: "Expired",
-    noNotableActions: "No notable actions recorded",
   },
   zh: {
     noData: "暂无可用数据",
@@ -65,45 +62,43 @@ const REPLAY_VIEW_TEXT: Record<Locale, {
     product: "商品",
     qty: "数量",
     expired: "过期",
-    noNotableActions: "无关键动作记录",
   },
 };
 
-export function ReplayView({ days, locale = "en" }: ReplayViewProps) {
+export function ReplayView({ daySummaries, selectedDay, selectedDayIndex, basePath, locale = "en" }: ReplayViewProps) {
   const text = REPLAY_VIEW_TEXT[locale];
-  const [selectedDay, setSelectedDay] = useState(0);
-  const day = days[selectedDay];
+  const summary = daySummaries[selectedDayIndex];
 
-  if (!day) return <div className="card"><p>{text.noData}</p></div>;
+  if (!selectedDay || !summary) {
+    return <div className="card"><p>{text.noData}</p></div>;
+  }
 
-  const errors = day.toolCalls.filter(tc => {
+  const errors = selectedDay.toolCalls.filter((tc) => {
     return typeof tc.result === "object" && tc.result !== null && "error" in (tc.result as Record<string, unknown>);
   });
+  const cashTrend = daySummaries.slice(0, selectedDayIndex + 1).map((day) => ({ day: day.day, cash: day.cash }));
 
   return (
     <div>
-      {/* Day selector strip */}
       <div className="day-strip">
-        {days.map((d, i) => (
-          <button
-            key={i}
-            className={`day-btn ${i === selectedDay ? "active" : ""}`}
-            onClick={() => setSelectedDay(i)}
+        {daySummaries.map((day, i) => (
+          <a
+            key={day.day}
+            className={`day-btn ${i === selectedDayIndex ? "active" : ""}`}
+            href={`${basePath}?day=${day.day}`}
           >
-            {d.day}
-          </button>
+            {day.day}
+          </a>
         ))}
       </div>
 
       <div className="replay-layout">
-        {/* Main content */}
         <div className="replay-main">
-          {/* Morning Brief */}
           <div className="card" style={{ marginBottom: "1rem" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
               <h3 style={{ margin: 0 }}>{text.morningBrief}</h3>
               <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>
-                {locale === "zh" ? `第${day.day}天` : `Day ${day.day}`}
+                {locale === "zh" ? `第${selectedDay.day}天` : `Day ${selectedDay.day}`}
               </span>
             </div>
             <pre style={{
@@ -114,16 +109,15 @@ export function ReplayView({ days, locale = "en" }: ReplayViewProps) {
               lineHeight: 1.6,
               fontFamily: "var(--font-mono)",
             }}>
-              {day.morningBrief}
+              {selectedDay.morningBrief}
             </pre>
           </div>
 
-          {/* Tool Calls */}
           <div style={{ marginBottom: "1rem" }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.75rem", marginBottom: "0.75rem" }}>
               <h3 style={{ margin: 0 }}>{text.toolCalls}</h3>
               <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>
-                {locale === "zh" ? `${day.toolCalls.length}${text.calls}` : `${day.toolCalls.length} ${text.calls}`}
+                {locale === "zh" ? `${selectedDay.toolCalls.length}${text.calls}` : `${selectedDay.toolCalls.length} ${text.calls}`}
                 {errors.length > 0 && (
                   <span style={{ color: "var(--accent-red)", marginLeft: "0.5rem" }}>
                     {locale === "zh"
@@ -133,29 +127,28 @@ export function ReplayView({ days, locale = "en" }: ReplayViewProps) {
                 )}
               </span>
             </div>
-            {day.toolCalls.map((tc, i) => (
+            {selectedDay.toolCalls.map((tc, i) => (
               <ToolCallCard key={i} call={tc} index={i} locale={locale} />
             ))}
           </div>
 
-          {/* Settlement */}
           <div className="card" style={{ borderLeft: "3px solid var(--accent-green)" }}>
             <h3 style={{ margin: "0 0 0.75rem", color: "var(--accent-green)" }}>{text.daySettlement}</h3>
             <div className="grid-4">
               <div>
                 <div className="metric-label">{text.customers}</div>
-                <div style={{ fontSize: "1.25rem", fontWeight: 600 }}>{day.settlement.customerCount}</div>
+                <div style={{ fontSize: "1.25rem", fontWeight: 600 }}>{selectedDay.settlement.customerCount}</div>
               </div>
               <div>
                 <div className="metric-label">{text.revenue}</div>
                 <div style={{ fontSize: "1.25rem", fontWeight: 600, color: "var(--accent-blue)" }}>
-                  {formatYen(day.settlement.revenue)}
+                  {formatYen(selectedDay.settlement.revenue)}
                 </div>
               </div>
               <div>
                 <div className="metric-label">{text.expenses}</div>
                 <div style={{ fontSize: "1.25rem", fontWeight: 600 }}>
-                  {formatYen(day.settlement.expenses)}
+                  {formatYen(selectedDay.settlement.expenses)}
                 </div>
               </div>
               <div>
@@ -163,17 +156,17 @@ export function ReplayView({ days, locale = "en" }: ReplayViewProps) {
                 <div style={{
                   fontSize: "1.25rem",
                   fontWeight: 600,
-                  color: day.settlement.netProfit >= 0 ? "var(--accent-green)" : "var(--accent-red)",
+                  color: selectedDay.settlement.netProfit >= 0 ? "var(--accent-green)" : "var(--accent-red)",
                 }}>
-                  {formatYen(day.settlement.netProfit)}
+                  {formatYen(selectedDay.settlement.netProfit)}
                 </div>
               </div>
             </div>
 
-            {day.settlement.itemsSold.length > 0 && (
+            {selectedDay.settlement.itemsSold.length > 0 && (
               <details style={{ marginTop: "1rem" }}>
                 <summary style={{ cursor: "pointer", fontSize: "0.875rem", color: "var(--text-muted)" }}>
-                  {text.itemsSold} ({day.settlement.itemsSold.length})
+                  {text.itemsSold} ({selectedDay.settlement.itemsSold.length})
                 </summary>
                 <table style={{ marginTop: "0.5rem" }}>
                   <thead>
@@ -184,7 +177,7 @@ export function ReplayView({ days, locale = "en" }: ReplayViewProps) {
                     </tr>
                   </thead>
                   <tbody>
-                    {day.settlement.itemsSold.map((item, i) => (
+                    {selectedDay.settlement.itemsSold.map((item, i) => (
                       <tr key={i}>
                         <td>{item.productId}</td>
                         <td className="text-right">{item.quantity}</td>
@@ -196,18 +189,17 @@ export function ReplayView({ days, locale = "en" }: ReplayViewProps) {
               </details>
             )}
 
-            {day.settlement.expiredItems.length > 0 && (
+            {selectedDay.settlement.expiredItems.length > 0 && (
               <div style={{ marginTop: "0.75rem", padding: "0.5rem", background: "rgba(239, 68, 68, 0.05)", borderRadius: "var(--radius-sm)" }}>
                 <span style={{ fontSize: "0.8125rem", color: "var(--accent-red)" }}>
-                  {text.expired}: {day.settlement.expiredItems.map(e => `${e.productId} (${e.quantity})`).join(", ")}
+                  {text.expired}: {selectedDay.settlement.expiredItems.map((e) => `${e.productId} (${e.quantity})`).join(", ")}
                 </span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Sidebar context panel */}
-        <DayContextPanel days={days} currentDay={selectedDay} locale={locale} />
+        <DayContextPanel day={summary} cashTrend={cashTrend} locale={locale} />
       </div>
     </div>
   );

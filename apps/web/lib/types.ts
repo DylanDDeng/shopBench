@@ -177,6 +177,22 @@ export interface DerivedMetrics {
   expiredByProduct: Record<string, number>;
 }
 
+export interface AggregatedLeaderboardEntry {
+  model: string;
+  displayName: string;
+  runCount: number;
+  positiveRunCount: number;
+  positiveRunRate: number;
+  medianFinalScore: number;
+  finalScoreIqr: number;
+  medianGrossMargin: number;
+  medianErrorRate: number;
+  stabilityBand: "stable" | "medium" | "volatile";
+  medianRunId: string;
+  bestRunId: string;
+  worstRunId: string;
+}
+
 export function computeDerivedMetrics(result: SimulationResult): DerivedMetrics {
   const { days } = result;
 

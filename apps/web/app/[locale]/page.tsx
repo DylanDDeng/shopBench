@@ -1,17 +1,19 @@
 import { notFound } from "next/navigation";
-import { getAllResults, computeDerivedMetrics, formatYen, getModelDisplayName } from "@/lib/data";
+import { getAllResults, getAggregatedLeaderboard, formatYen } from "@/lib/data";
 import { Leaderboard } from "@/components/Leaderboard";
 import { isLocale } from "@/lib/i18n";
 
 function getModelLogo(model: string): string | null {
   const key = model.toLowerCase();
+  if (key.includes("hunter-alpha") || key.includes("healer-alpha")) return "/leaderboard/openrouter.svg";
+  if (key.includes("mimo-v2-pro")) return "/leaderboard/xiaomimimo.svg";
   if (key.includes("claude")) return "/leaderboard/claude-color.svg";
   if (key.includes("doubao") || key.includes("bytedance-seed")) return "/leaderboard/doubao-color.svg";
   if (key.includes("stepfun") || key.includes("step-")) return "/leaderboard/stepfun-color.svg";
   if (key.includes("gemini")) return "/leaderboard/gemini-color.svg";
   if (key.includes("deepseek")) return "/leaderboard/deepseek-color.svg";
   if (key.includes("minimax")) return "/leaderboard/minimax-color.svg";
-  if (key.includes("glm") || key.includes("zai")) return "/leaderboard/zai.svg";
+  if (key.includes("glm") || key.includes("zai") || key.includes("pony-alpha")) return "/leaderboard/zai.svg";
   if (key.includes("qwen")) return "/leaderboard/qwen-color.svg";
   if (key.includes("gpt") || key.includes("openai")) return "/leaderboard/openai.svg";
   if (key.includes("grok")) return "/leaderboard/grok.svg";
@@ -30,64 +32,51 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
     ? {
         title: "ShopBench 排行榜",
         subtitle:
-          "总排名基于 30 天净现金。毛利率与工具调用错误率展示不同能力维度，冠军可能不同。",
+          "稳定性榜单会把同一模型的重复运行聚合起来，并按 30 天净现金中位数排序。毛利率与工具调用错误率仍用于观察不同能力维度。",
         empty: "暂无模拟结果。请先运行 benchmark：",
         topSignals: "核心信号",
         overallWinner: "总冠军",
-        overallWinnerMeta: "净现金与稳定性最佳",
-        bestCash: "30天净现金最佳",
-        bestCashMeta: "现金结果领先",
+        overallWinnerMeta: "重复运行下的中位净现金最高",
+        bestCash: "30天净现金中位数最佳",
+        bestCashMeta: "重复运行后的典型现金结果领先",
         lowestError: "工具调用错误率最低",
-        lowestErrorMeta: "执行最稳定",
+        lowestErrorMeta: "中位错误率最低",
         bestMargin: "毛利率最佳",
-        bestMarginMeta: "销售组合效率最高",
+        bestMarginMeta: "中位毛利率最高",
         compareAll: "查看洞察与诊断 →",
       }
     : {
         title: "ShopBench Leaderboard",
         subtitle:
-          "Overall rank is based on 30-Day Net Cash. Gross margin and tool call error rate highlight different strengths and may have different winners.",
+          "Stable Ranking groups repeated runs by model and ranks them by median 30-Day Net Cash. Gross margin and tool call error rate still highlight different strengths.",
         empty: "No simulation results yet. Run a benchmark first:",
         topSignals: "Top Signals",
         overallWinner: "Overall Winner",
-        overallWinnerMeta: "Highest Net Cash & Consistency",
-        bestCash: "Best 30-Day Net Cash",
-        bestCashMeta: "Top cash outcome",
+        overallWinnerMeta: "Highest median net cash across repeated runs",
+        bestCash: "Best Median 30-Day Net Cash",
+        bestCashMeta: "Top typical cash outcome across repeated runs",
         lowestError: "Lowest Tool Call Error Rate",
-        lowestErrorMeta: "Most reliable execution",
+        lowestErrorMeta: "Lowest median tool error rate",
         bestMargin: "Best Gross Margin",
-        bestMarginMeta: "Most efficient sales mix",
+        bestMarginMeta: "Highest median gross margin",
         compareAll: "View Insights & Diagnostics →",
       };
 
   const results = getAllResults();
-  const derivedMetrics = results.map(r => computeDerivedMetrics(r));
+  const leaderboard = getAggregatedLeaderboard(results);
 
-  const best = results[0];
-  const bestModelName = best ? getModelDisplayName(best.model) : "–";
+  const best = leaderboard[0];
+  const bestModelName = best?.displayName ?? "–";
   const bestModelLogo = best ? getModelLogo(best.model) : null;
   const bestIsGpt = !!best && (best.model.toLowerCase().includes("gpt") || best.model.toLowerCase().includes("openai"));
-  const lowestErrorRateModel = derivedMetrics.length > 0
-    ? getModelDisplayName(
-        results[
-          derivedMetrics.reduce(
-            (bestIdx, dm, idx) => (dm.errorRate < derivedMetrics[bestIdx].errorRate ? idx : bestIdx),
-            0,
-          )
-        ].model,
-      )
-    : "–";
-  const bestGrossMarginModel = derivedMetrics.length > 0
-    ? getModelDisplayName(
-        results[
-          derivedMetrics.reduce(
-            (bestIdx, dm, idx) => (dm.grossMargin > derivedMetrics[bestIdx].grossMargin ? idx : bestIdx),
-            0,
-          )
-        ].model,
-      )
-    : "–";
-  const lowestErrorIsClaude = lowestErrorRateModel.toLowerCase().includes("claude");
+  const lowestErrorEntry = leaderboard.reduce((bestEntry, entry) => (
+    !bestEntry || entry.medianErrorRate < bestEntry.medianErrorRate ? entry : bestEntry
+  ), null as (typeof leaderboard)[number] | null);
+  const bestMarginEntry = leaderboard.reduce((bestEntry, entry) => (
+    !bestEntry || entry.medianGrossMargin > bestEntry.medianGrossMargin ? entry : bestEntry
+  ), null as (typeof leaderboard)[number] | null);
+  const lowestErrorLogo = lowestErrorEntry ? getModelLogo(lowestErrorEntry.model) : null;
+  const bestMarginLogo = bestMarginEntry ? getModelLogo(bestMarginEntry.model) : null;
 
   return (
     <div className="container">
@@ -121,32 +110,32 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
             <article className="top-signal top-signal-cash">
               <div className="top-signal-mark top-signal-mark-symbol" aria-hidden>¥</div>
               <p className="top-signal-label">{text.bestCash}</p>
-              <p className="top-signal-value top-signal-value-cash">{best ? formatYen(best.finalScore) : "–"}</p>
+              <p className="top-signal-value top-signal-value-cash">{best ? formatYen(best.medianFinalScore) : "–"}</p>
               <p className="top-signal-meta">{text.bestCashMeta}</p>
             </article>
 
-            <article className={`top-signal ${lowestErrorIsClaude ? "top-signal-claude" : "top-signal-error"}`} title={lowestErrorRateModel}>
-              <div className={`top-signal-mark ${lowestErrorIsClaude ? "" : "top-signal-mark-symbol"}`} aria-hidden>
-                {lowestErrorIsClaude ? <img src="/leaderboard/claude-color.svg" alt="" /> : "✓"}
+            <article className={`top-signal ${lowestErrorLogo?.includes("claude") ? "top-signal-claude" : "top-signal-error"}`} title={lowestErrorEntry?.displayName ?? "–"}>
+              <div className={`top-signal-mark ${lowestErrorLogo ? "" : "top-signal-mark-symbol"}`} aria-hidden>
+                {lowestErrorLogo ? <img src={lowestErrorLogo} alt="" /> : "✓"}
               </div>
               <p className="top-signal-label">{text.lowestError}</p>
-              <p className="top-signal-value">{lowestErrorRateModel}</p>
+              <p className="top-signal-value">{lowestErrorEntry?.displayName ?? "–"}</p>
               <p className="top-signal-meta">{text.lowestErrorMeta}</p>
             </article>
 
-            <article className="top-signal top-signal-margin" title={bestGrossMarginModel}>
+            <article className="top-signal top-signal-margin" title={bestMarginEntry?.displayName ?? "–"}>
               <div className="top-signal-mark" aria-hidden>
-                <img src="/leaderboard/stepfun-color.svg" alt="" />
+                {bestMarginLogo ? <img src={bestMarginLogo} alt="" /> : "▦"}
               </div>
               <p className="top-signal-label">{text.bestMargin}</p>
-              <p className="top-signal-value">{bestGrossMarginModel}</p>
+              <p className="top-signal-value">{bestMarginEntry?.displayName ?? "–"}</p>
               <p className="top-signal-meta">{text.bestMarginMeta}</p>
             </article>
           </section>
 
-          <Leaderboard results={results} derivedMetrics={derivedMetrics} locale={locale} />
+          <Leaderboard entries={leaderboard} locale={locale} />
 
-          {results.length > 1 && (
+          {leaderboard.length > 1 && (
             <div style={{ marginTop: "1.5rem", textAlign: "center" }}>
               <a href={`/${locale}/insights`} className="action-link" style={{ fontSize: "1rem" }}>
                 {text.compareAll}

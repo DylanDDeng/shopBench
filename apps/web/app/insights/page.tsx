@@ -290,10 +290,14 @@ const STRATEGY_SUMMARIES_ZH: Record<StrategyType, string> = {
 
 /* ─── Page component ─── */
 
-export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
+export default async function InsightsPage({ locale = "en", searchParams }: { locale?: Locale; searchParams?: Promise<{ model?: string | string[] }> | { model?: string | string[] } }) {
   const isZh = locale === "zh";
   const strategyMeta = isZh ? STRATEGY_META_ZH : STRATEGY_META;
   const strategySummaries = isZh ? STRATEGY_SUMMARIES_ZH : STRATEGY_SUMMARIES;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const requestedModel = Array.isArray(resolvedSearchParams?.model)
+    ? resolvedSearchParams.model[0]
+    : resolvedSearchParams?.model;
   const results = getAllResults();
 
   if (results.length === 0) {
@@ -522,6 +526,15 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
     derivedMetrics,
     locale,
   });
+  const selectedModel = (requestedModel && analyses.some((analysis) => analysis.model === requestedModel)
+    ? requestedModel
+    : undefined)
+    ?? deepDiveReports[0]?.modelId
+    ?? modelDiagnostics[0]?.model;
+  const selectedDeepDiveReport = deepDiveReports.find((report) => report.modelId === selectedModel) ?? deepDiveReports[0] ?? null;
+  const selectedDiagnostic = modelDiagnostics.find((diagnostic) => diagnostic.model === selectedModel) ?? modelDiagnostics[0] ?? null;
+  const deepDiveReportOptions = deepDiveReports.map(({ modelId, displayName, rank }) => ({ modelId, displayName, rank }));
+  const diagnosticOptions = modelDiagnostics.map(({ model, displayName, rank }) => ({ model, displayName, rank }));
   const regionErrorComparison = buildRegionErrorComparison(results);
 
   return (
@@ -603,7 +616,7 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
         }))}
       />
 
-      <ModelDiagnosticsPanel diagnostics={modelDiagnostics} locale={locale} />
+      <ModelDiagnosticsPanel diagnostic={selectedDiagnostic} diagnosticOptions={diagnosticOptions} locale={locale} />
 
       <section className="insights-block">
         <div className="insights-block-head">
@@ -621,7 +634,7 @@ export default function InsightsPage({ locale = "en" }: { locale?: Locale }) {
         title={isZh ? "模型深度报告" : "Model Deep Dive Reports"}
         subtitle={isZh ? "按模型输出长篇分析与图表证据" : "long-form per model analysis with chart evidence"}
       />
-      <DeepDiveReports reports={deepDiveReports} locale={locale} />
+      <DeepDiveReports report={selectedDeepDiveReport} reportOptions={deepDiveReportOptions} locale={locale} />
     </div>
   );
 }

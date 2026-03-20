@@ -1,15 +1,17 @@
-import { getAllResults, computeDerivedMetrics, formatYen, getModelDisplayName } from "@/lib/data";
+import { getAllResults, getAggregatedLeaderboard, formatYen } from "@/lib/data";
 import { Leaderboard } from "@/components/Leaderboard";
 
 function getModelLogo(model: string): string | null {
   const key = model.toLowerCase();
+  if (key.includes("hunter-alpha") || key.includes("healer-alpha")) return "/leaderboard/openrouter.svg";
+  if (key.includes("mimo-v2-pro")) return "/leaderboard/xiaomimimo.svg";
   if (key.includes("claude")) return "/leaderboard/claude-color.svg";
   if (key.includes("doubao") || key.includes("bytedance-seed")) return "/leaderboard/doubao-color.svg";
   if (key.includes("stepfun") || key.includes("step-")) return "/leaderboard/stepfun-color.svg";
   if (key.includes("gemini")) return "/leaderboard/gemini-color.svg";
   if (key.includes("deepseek")) return "/leaderboard/deepseek-color.svg";
   if (key.includes("minimax")) return "/leaderboard/minimax-color.svg";
-  if (key.includes("glm") || key.includes("zai")) return "/leaderboard/zai.svg";
+  if (key.includes("glm") || key.includes("zai") || key.includes("pony-alpha")) return "/leaderboard/zai.svg";
   if (key.includes("qwen")) return "/leaderboard/qwen-color.svg";
   if (key.includes("gpt") || key.includes("openai")) return "/leaderboard/openai.svg";
   if (key.includes("grok")) return "/leaderboard/grok.svg";
@@ -19,40 +21,27 @@ function getModelLogo(model: string): string | null {
 
 export default function Home() {
   const results = getAllResults();
-  const derivedMetrics = results.map(r => computeDerivedMetrics(r));
+  const leaderboard = getAggregatedLeaderboard(results);
 
-  const best = results[0];
-  const bestModelName = best ? getModelDisplayName(best.model) : "–";
+  const best = leaderboard[0];
+  const bestModelName = best?.displayName ?? "–";
   const bestModelLogo = best ? getModelLogo(best.model) : null;
   const bestIsGpt = !!best && (best.model.toLowerCase().includes("gpt") || best.model.toLowerCase().includes("openai"));
-  const lowestErrorRateModel = derivedMetrics.length > 0
-    ? getModelDisplayName(
-        results[
-          derivedMetrics.reduce(
-            (bestIdx, dm, idx) => (dm.errorRate < derivedMetrics[bestIdx].errorRate ? idx : bestIdx),
-            0,
-          )
-        ].model,
-      )
-    : "–";
-  const bestGrossMarginModel = derivedMetrics.length > 0
-    ? getModelDisplayName(
-        results[
-          derivedMetrics.reduce(
-            (bestIdx, dm, idx) => (dm.grossMargin > derivedMetrics[bestIdx].grossMargin ? idx : bestIdx),
-            0,
-          )
-        ].model,
-      )
-    : "–";
-  const lowestErrorIsClaude = lowestErrorRateModel.toLowerCase().includes("claude");
+  const lowestErrorEntry = leaderboard.reduce((bestEntry, entry) => (
+    !bestEntry || entry.medianErrorRate < bestEntry.medianErrorRate ? entry : bestEntry
+  ), null as (typeof leaderboard)[number] | null);
+  const bestMarginEntry = leaderboard.reduce((bestEntry, entry) => (
+    !bestEntry || entry.medianGrossMargin > bestEntry.medianGrossMargin ? entry : bestEntry
+  ), null as (typeof leaderboard)[number] | null);
+  const lowestErrorLogo = lowestErrorEntry ? getModelLogo(lowestErrorEntry.model) : null;
+  const bestMarginLogo = bestMarginEntry ? getModelLogo(bestMarginEntry.model) : null;
 
   return (
     <div className="container">
       <div className="page-header">
         <h1>ShopBench Leaderboard</h1>
         <p>
-          Overall rank is based on 30-Day Net Cash. Gross margin and tool call error rate highlight different strengths and may have different winners.
+          Stable Ranking groups repeated runs by model and ranks them by median 30-Day Net Cash. Gross margin and tool call error rate still highlight different strengths.
         </p>
       </div>
 
@@ -75,38 +64,38 @@ export default function Home() {
               </div>
               <p className="top-signal-label">Overall Winner</p>
               <p className="top-signal-value">{bestModelName}</p>
-              <p className="top-signal-meta">Highest Net Cash &amp; Consistency</p>
+              <p className="top-signal-meta">Highest median net cash across repeated runs</p>
             </article>
 
             <article className="top-signal top-signal-cash">
               <div className="top-signal-mark top-signal-mark-symbol" aria-hidden>¥</div>
-              <p className="top-signal-label">Best 30-Day Net Cash</p>
-              <p className="top-signal-value top-signal-value-cash">{best ? formatYen(best.finalScore) : "–"}</p>
-              <p className="top-signal-meta">Top cash outcome</p>
+              <p className="top-signal-label">Best Median 30-Day Net Cash</p>
+              <p className="top-signal-value top-signal-value-cash">{best ? formatYen(best.medianFinalScore) : "–"}</p>
+              <p className="top-signal-meta">Typical cash outcome across repeated runs</p>
             </article>
 
-            <article className={`top-signal ${lowestErrorIsClaude ? "top-signal-claude" : "top-signal-error"}`} title={lowestErrorRateModel}>
-              <div className={`top-signal-mark ${lowestErrorIsClaude ? "" : "top-signal-mark-symbol"}`} aria-hidden>
-                {lowestErrorIsClaude ? <img src="/leaderboard/claude-color.svg" alt="" /> : "✓"}
+            <article className={`top-signal ${lowestErrorLogo?.includes("claude") ? "top-signal-claude" : "top-signal-error"}`} title={lowestErrorEntry?.displayName ?? "–"}>
+              <div className={`top-signal-mark ${lowestErrorLogo ? "" : "top-signal-mark-symbol"}`} aria-hidden>
+                {lowestErrorLogo ? <img src={lowestErrorLogo} alt="" /> : "✓"}
               </div>
               <p className="top-signal-label">Lowest Tool Call Error Rate</p>
-              <p className="top-signal-value">{lowestErrorRateModel}</p>
-              <p className="top-signal-meta">Most reliable execution</p>
+              <p className="top-signal-value">{lowestErrorEntry?.displayName ?? "–"}</p>
+              <p className="top-signal-meta">Lowest median tool error rate</p>
             </article>
 
-            <article className="top-signal top-signal-margin" title={bestGrossMarginModel}>
+            <article className="top-signal top-signal-margin" title={bestMarginEntry?.displayName ?? "–"}>
               <div className="top-signal-mark" aria-hidden>
-                <img src="/leaderboard/stepfun-color.svg" alt="" />
+                {bestMarginLogo ? <img src={bestMarginLogo} alt="" /> : "▦"}
               </div>
               <p className="top-signal-label">Best Gross Margin</p>
-              <p className="top-signal-value">{bestGrossMarginModel}</p>
-              <p className="top-signal-meta">Most efficient sales mix</p>
+              <p className="top-signal-value">{bestMarginEntry?.displayName ?? "–"}</p>
+              <p className="top-signal-meta">Highest median gross margin</p>
             </article>
           </section>
 
-          <Leaderboard results={results} derivedMetrics={derivedMetrics} />
+          <Leaderboard entries={leaderboard} />
 
-          {results.length > 1 && (
+          {leaderboard.length > 1 && (
             <div style={{ marginTop: "1.5rem", textAlign: "center" }}>
               <a href="/insights" className="action-link" style={{ fontSize: "1rem" }}>
                 View Insights & Diagnostics →

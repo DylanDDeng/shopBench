@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { GroupedBarChart } from "@/components/GroupedBarChart";
 import { RadarCompare } from "@/components/RadarCompare";
 import { TrendLineChart } from "@/components/TrendLineChart";
@@ -88,25 +89,34 @@ export interface DeepDiveReport {
   };
 }
 
+interface DeepDiveReportOption {
+  modelId: string;
+  displayName: string;
+  rank: number;
+}
+
 interface DeepDiveReportsProps {
-  reports: DeepDiveReport[];
+  report: DeepDiveReport | null;
+  reportOptions: DeepDiveReportOption[];
   locale?: Locale;
 }
 
 type EvidenceTab = "trajectory" | "inventory" | "grossprofit" | "netprofit" | "radar" | "toolmix";
 
-export function DeepDiveReports({ reports, locale = "en" }: DeepDiveReportsProps) {
+export function DeepDiveReports({ report, reportOptions, locale = "en" }: DeepDiveReportsProps) {
   const isZh = locale === "zh";
-  const [selectedModel, setSelectedModel] = useState(reports[0]?.modelId ?? "");
+  const router = useRouter();
+  const pathname = usePathname();
   const [evidenceTab, setEvidenceTab] = useState<EvidenceTab>("trajectory");
-
-  const report = useMemo(
-    () => reports.find(r => r.modelId === selectedModel) ?? reports[0],
-    [reports, selectedModel],
-  );
 
   if (!report) {
     return null;
+  }
+
+  const updateSelectedModel = (modelId: string) => {
+    const nextParams = new URLSearchParams(window.location.search);
+    nextParams.set("model", modelId);
+    router.replace(pathname + "?" + nextParams.toString(), { scroll: false });
   }
 
   const deltaRows = [
@@ -151,9 +161,9 @@ export function DeepDiveReports({ reports, locale = "en" }: DeepDiveReportsProps
           <select
             className="deep-dive-select"
             value={report.modelId}
-            onChange={e => setSelectedModel(e.target.value)}
+            onChange={e => updateSelectedModel(e.target.value)}
           >
-            {reports.map(r => (
+            {reportOptions.map(r => (
               <option key={r.modelId} value={r.modelId}>
                 #{r.rank} {r.displayName}
               </option>

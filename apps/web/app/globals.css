@@ -2768,6 +2768,33 @@ thead tr:hover {
   line-height: 1.1;
 }
 
+.stability-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 78px;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.stability-pill-stable {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.stability-pill-medium {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.stability-pill-volatile {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 .model-marquee {
   width: 100%;
   overflow: hidden;

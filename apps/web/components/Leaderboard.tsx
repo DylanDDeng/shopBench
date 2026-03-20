@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import type { SimulationResult, DerivedMetrics } from "@/lib/types";
+import type { AggregatedLeaderboardEntry } from "@/lib/types";
 import { formatYen, formatPct } from "@/lib/types";
 import type { Locale } from "@/lib/i18n";
 import { getModelMeta, type ModelOpenness, type ModelRegion } from "@/lib/modelMeta";
-import { SparklineCell } from "./SparklineCell";
 
 interface LeaderboardProps {
-  results: SimulationResult[];
-  derivedMetrics: DerivedMetrics[];
+  entries: AggregatedLeaderboardEntry[];
   locale?: Locale;
 }
 
@@ -24,24 +22,26 @@ const LEADERBOARD_TEXT: Record<Locale, {
   model: string;
   netCash: string;
   netCashHelp: string;
-  changePct: string;
-  changePctHelp: string;
+  stability: string;
+  stabilityHelp: string;
   grossMargin: string;
   grossMarginHelp: string;
   errorRate: string;
   errorRateHelp: string;
-  profit: string;
-  profitHelp: string;
   actions: string;
   view: string;
   report: string;
   replay: string;
+  medianReport: string;
+  medianReplay: string;
+  bestRun: string;
+  worstRun: string;
   metricGuideTitle: string;
   metricGuideIntro: string;
+  metricGuideAggregation: string;
   metricGuideNetCash: string;
-  metricGuideNetProfit: string;
-  metricGuideGrossProfit: string;
   metricGuideGrossMargin: string;
+  metricGuideErrorRate: string;
   metricGuideInventoryNote: string;
   filterTitle: string;
   filterOpenness: string;
@@ -59,30 +59,37 @@ const LEADERBOARD_TEXT: Record<Locale, {
   filterReset: string;
   filterMatchCount: string;
   filterNoMatch: string;
+  runCount: string;
+  positiveRuns: string;
+  stable: string;
+  medium: string;
+  volatile: string;
 }> = {
   en: {
     rank: "Rank",
     model: "Model",
-    netCash: "30-Day Net Cash (¥) + Δ%",
-    netCashHelp: "Top number is ranking metric: final cash minus starting cash minus outstanding loans. Lower line is final-cash return over 30 days: (final cash - starting cash) / starting cash.",
-    changePct: "30-Day Change %",
-    changePctHelp: "Final-cash return over 30 days: (final cash - starting cash) / starting cash.",
-    grossMargin: "Gross Margin",
-    grossMarginHelp: "(Revenue - COGS) / Revenue for sold items.",
-    errorRate: "Tool Call Error Rate",
-    errorRateHelp: "Percentage of tool calls that returned an error.",
-    profit: "30-Day Net Profit Trend",
-    profitHelp: "Day-by-day net profit trend (not cumulative).",
+    netCash: "Median 30-Day Net Cash (¥)",
+    netCashHelp: "Primary ranking metric. If a model has multiple runs, we rank by the median net cash across those runs.",
+    stability: "Stability (IQR)",
+    stabilityHelp: "IQR = P75 - P25 of 30-Day Net Cash across repeated runs. Smaller means more stable.",
+    grossMargin: "Median Gross Margin",
+    grossMarginHelp: "Median gross margin across repeated runs.",
+    errorRate: "Median Tool Call Error Rate",
+    errorRateHelp: "Median tool call error rate across repeated runs.",
     actions: "Actions",
     view: "View",
     report: "Report",
     replay: "Replay",
+    medianReport: "Median Report",
+    medianReplay: "Median Replay",
+    bestRun: "Best Run",
+    worstRun: "Worst Run",
     metricGuideTitle: "Metric definitions (important)",
-    metricGuideIntro: "ShopBench ranking is based on 30-Day Net Cash. Do not treat gross margin as the final score.",
-    metricGuideNetCash: "30-Day Net Cash = final cash - starting cash - outstanding loans (this is the ranking metric).",
-    metricGuideNetProfit: "Daily Net Profit = revenue - COGS - wages - rent - loan interest - marketing spend - other expenses.",
-    metricGuideGrossProfit: "Daily Gross Profit = revenue - COGS of sold items; it excludes wages/rent/marketing and cash timing effects.",
-    metricGuideGrossMargin: "Gross Margin is a ratio, not absolute cash generated.",
+    metricGuideIntro: "Stable Ranking aggregates repeated runs of the same model. Single-run pages remain available from the action menu.",
+    metricGuideAggregation: "Leaderboard rank is based on median 30-Day Net Cash across all runs currently present for that model.",
+    metricGuideNetCash: "30-Day Net Cash = final cash - starting cash - outstanding loans. Median net cash is the primary ranking metric.",
+    metricGuideGrossMargin: "Gross Margin is a ratio, not absolute cash generated. We show the median gross margin across runs.",
+    metricGuideErrorRate: "Tool Call Error Rate is also aggregated by median, so one bad run does not dominate the model's headline metric.",
     metricGuideInventoryNote: "End-of-run inventory is not included in final score in this 30-day setup.",
     filterTitle: "Model filters",
     filterOpenness: "Openness",
@@ -100,30 +107,37 @@ const LEADERBOARD_TEXT: Record<Locale, {
     filterReset: "Reset",
     filterMatchCount: "Showing",
     filterNoMatch: "No models match current filters.",
+    runCount: "runs",
+    positiveRuns: "positive",
+    stable: "Stable",
+    medium: "Medium",
+    volatile: "Volatile",
   },
   zh: {
     rank: "排名",
     model: "模型",
-    netCash: "30天净现金 (¥) + 涨跌%",
-    netCashHelp: "上行数字为排名指标：期末现金减去初始现金和未偿贷款。下行百分比为30天现金回报率：（期末现金 - 初始现金）/ 初始现金。",
-    changePct: "30天涨跌幅",
-    changePctHelp: "30天最终现金回报率：（期末现金 - 初始现金）/ 初始现金。",
-    grossMargin: "毛利率",
-    grossMarginHelp: "已售商品的 (收入 - 成本) / 收入。",
-    errorRate: "工具调用错误率",
-    errorRateHelp: "所有工具调用中返回错误的比例。",
-    profit: "30天净利润趋势",
-    profitHelp: "按天展示净利润变化（非累计口径）。",
+    netCash: "30天净现金中位数 (¥)",
+    netCashHelp: "主排名指标。如果同一模型有多次运行，按这些运行的 30 天净现金中位数排序。",
+    stability: "稳定性（IQR）",
+    stabilityHelp: "IQR = 30 天净现金的 P75 - P25。越小表示越稳定。",
+    grossMargin: "毛利率中位数",
+    grossMarginHelp: "重复运行后的毛利率中位数。",
+    errorRate: "工具调用错误率中位数",
+    errorRateHelp: "重复运行后的工具错误率中位数。",
     actions: "操作",
     view: "查看",
     report: "报告",
     replay: "回放",
+    medianReport: "中位数报告",
+    medianReplay: "中位数回放",
+    bestRun: "最佳单次",
+    worstRun: "最差单次",
     metricGuideTitle: "指标口径说明（重要）",
-    metricGuideIntro: "ShopBench 排名依据是「30天净现金」，不要把毛利率当成最终得分。",
-    metricGuideNetCash: "30天净现金 = 期末现金 - 初始现金 - 未偿贷款（该指标用于排名）。",
-    metricGuideNetProfit: "每日净利润 = 收入 - 销售成本 - 人工 - 房租 - 贷款利息 - 营销支出 - 其他费用。",
-    metricGuideGrossProfit: "每日毛利润 = 收入 - 已售商品成本；不含人工/房租/营销等费用，也不反映现金时点。",
-    metricGuideGrossMargin: "毛利率是比例指标，不等于实际回笼现金规模。",
+    metricGuideIntro: "稳定性榜单会把同一模型的重复运行聚合起来。单次报告与回放仍然可以通过操作菜单进入。",
+    metricGuideAggregation: "首页榜单按同一模型当前已有运行结果的 30 天净现金中位数排序。",
+    metricGuideNetCash: "30天净现金 = 期末现金 - 初始现金 - 未偿贷款。中位数净现金是正式排名指标。",
+    metricGuideGrossMargin: "毛利率是比例指标，不等于实际回笼现金规模。这里展示的是重复运行后的毛利率中位数。",
+    metricGuideErrorRate: "工具调用错误率也按中位数聚合，避免单次异常 run 过度影响模型总览。",
     metricGuideInventoryNote: "在当前 30 天评测中，期末库存不计入最终得分。",
     filterTitle: "模型筛选",
     filterOpenness: "授权",
@@ -141,6 +155,11 @@ const LEADERBOARD_TEXT: Record<Locale, {
     filterReset: "重置",
     filterMatchCount: "当前显示",
     filterNoMatch: "当前筛选下没有匹配模型。",
+    runCount: "次运行",
+    positiveRuns: "次为正",
+    stable: "稳定",
+    medium: "中等波动",
+    volatile: "高波动",
   },
 };
 
@@ -176,12 +195,15 @@ function getRankBadge(rank: number, locale: Locale) {
   return <span className="badge-rank">{rank + 1}</span>;
 }
 
-function formatSignedPct(value: number): string {
-  const pct = value * 100;
-  const abs = Math.abs(pct).toFixed(1);
-  if (pct > 0.0001) return `+${abs}%`;
-  if (pct < -0.0001) return `-${abs}%`;
-  return "0.0%";
+function formatRunSummary(entry: AggregatedLeaderboardEntry, locale: Locale, text: typeof LEADERBOARD_TEXT[Locale]): string {
+  if (locale === "zh") return `${entry.runCount}${text.runCount} · ${entry.positiveRunCount}/${entry.runCount}${text.positiveRuns}`;
+  return `${entry.runCount} ${text.runCount} · ${entry.positiveRunCount}/${entry.runCount} ${text.positiveRuns}`;
+}
+
+function getStabilityLabel(band: AggregatedLeaderboardEntry["stabilityBand"], text: typeof LEADERBOARD_TEXT[Locale]): string {
+  if (band === "stable") return text.stable;
+  if (band === "medium") return text.medium;
+  return text.volatile;
 }
 
 function ModelNameMarquee({ name }: { name: string }) {
@@ -241,6 +263,7 @@ function ModelNameMarquee({ name }: { name: string }) {
 function getModelLogo(model: string): string | null {
   const key = model.toLowerCase();
   if (key.includes("hunter-alpha") || key.includes("healer-alpha")) return "/leaderboard/openrouter.svg";
+  if (key.includes("mimo-v2-pro")) return "/leaderboard/xiaomimimo.svg";
   if (key.includes("claude")) return "/leaderboard/claude-color.svg";
   if (key.includes("doubao") || key.includes("bytedance-seed")) return "/leaderboard/doubao-color.svg";
   if (key.includes("stepfun") || key.includes("step-")) return "/leaderboard/stepfun-color.svg";
@@ -270,7 +293,7 @@ function getRegionLabel(region: ModelRegion, text: typeof LEADERBOARD_TEXT[Local
   return text.filterRegionUnknown;
 }
 
-export function Leaderboard({ results, derivedMetrics, locale = "en" }: LeaderboardProps) {
+export function Leaderboard({ entries, locale = "en" }: LeaderboardProps) {
   const text = LEADERBOARD_TEXT[locale];
   const routePrefix = `/${locale}`;
   const [opennessFilter, setOpennessFilter] = useState<ModelOpenness | "all">("all");
@@ -279,26 +302,25 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
 
   const rows = useMemo(
     () =>
-      results.map((r, i) => {
-        const dm = derivedMetrics[i];
-        const shortModelName = (r.model.split("/").pop() ?? r.model)
+      entries.map(entry => {
+        const shortModelName = entry.displayName
           .replace(/xhgih/gi, "xhigh")
           .replace(/-hgih\b/gi, "-high");
-        const meta = getModelMeta(r.model);
-        return { r, dm, shortModelName, meta };
+        const meta = getModelMeta(entry.model);
+        return { entry, shortModelName, meta };
       }),
-    [results, derivedMetrics],
+    [entries],
   );
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return rows.filter(({ r, shortModelName, meta }) => {
+    return rows.filter(({ entry, shortModelName, meta }) => {
       if (opennessFilter !== "all" && meta.openness !== opennessFilter) return false;
       if (regionFilter !== "all" && meta.region !== regionFilter) return false;
       if (!normalizedQuery) return true;
       return (
         shortModelName.toLowerCase().includes(normalizedQuery) ||
-        r.model.toLowerCase().includes(normalizedQuery)
+        entry.model.toLowerCase().includes(normalizedQuery)
       );
     });
   }, [rows, opennessFilter, regionFilter, query]);
@@ -309,10 +331,10 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
         <summary>{text.metricGuideTitle}</summary>
         <p className="metrics-guide-intro">{text.metricGuideIntro}</p>
         <ul className="metrics-guide-list">
+          <li>{text.metricGuideAggregation}</li>
           <li>{text.metricGuideNetCash}</li>
-          <li>{text.metricGuideNetProfit}</li>
-          <li>{text.metricGuideGrossProfit}</li>
           <li>{text.metricGuideGrossMargin}</li>
+          <li>{text.metricGuideErrorRate}</li>
           <li>{text.metricGuideInventoryNote}</li>
         </ul>
       </details>
@@ -397,6 +419,13 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
             </th>
             <th className="text-center">
               <MetricInfo
+                label={text.stability}
+                help={text.stabilityHelp}
+                locale={locale}
+              />
+            </th>
+            <th className="text-center">
+              <MetricInfo
                 label={text.grossMargin}
                 help={text.grossMarginHelp}
                 locale={locale}
@@ -406,13 +435,6 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
               <MetricInfo
                 label={text.errorRate}
                 help={text.errorRateHelp}
-                locale={locale}
-              />
-            </th>
-            <th>
-              <MetricInfo
-                label={text.profit}
-                help={text.profitHelp}
                 locale={locale}
               />
             </th>
@@ -426,17 +448,23 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
                 {text.filterNoMatch}
               </td>
             </tr>
-          ) : filteredRows.map(({ r, dm, shortModelName, meta }, i) => {
-            const logoSrc = getModelLogo(r.model);
-            const startingCash = r.metrics.finalCash - r.finalScore - r.metrics.outstandingLoans;
-            const cashDelta = r.metrics.finalCash - startingCash;
-            const changePct = startingCash !== 0 ? (cashDelta / startingCash) : 0;
-            // Day-by-day net profit (not cumulative)
-            const profitCurve = r.metrics.dailyProfitTrend.map(p => Math.round(p));
-            const sparklineDelay = Math.min(i * 70, 560);
+          ) : filteredRows.map(({ entry, shortModelName, meta }, i) => {
+            const logoSrc = getModelLogo(entry.model);
+            const primaryReportLabel = entry.runCount > 1 ? text.medianReport : text.report;
+            const primaryReplayLabel = entry.runCount > 1 ? text.medianReplay : text.replay;
+            const actionLinks = [
+              { href: `${routePrefix}/report/${entry.medianRunId}`, label: primaryReportLabel },
+              { href: `${routePrefix}/replay/${entry.medianRunId}`, label: primaryReplayLabel },
+            ];
+            if (entry.bestRunId !== entry.medianRunId) {
+              actionLinks.push({ href: `${routePrefix}/report/${entry.bestRunId}`, label: text.bestRun });
+            }
+            if (entry.worstRunId !== entry.medianRunId && entry.worstRunId !== entry.bestRunId) {
+              actionLinks.push({ href: `${routePrefix}/report/${entry.worstRunId}`, label: text.worstRun });
+            }
 
             return (
-              <tr key={r.id}>
+              <tr key={`${entry.displayName}-${entry.medianRunId}`}>
                 <td>{getRankBadge(i, locale)}</td>
                 <td className="model-cell">
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
@@ -453,27 +481,28 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
                       <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
                         {getRegionLabel(meta.region, text)} · {getOpennessLabel(meta.openness, text)}
                       </div>
+                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                        {formatRunSummary(entry, locale, text)}
+                      </div>
                     </div>
                   </div>
                 </td>
                 <td className="text-center cash-change-cell">
-                  <div className={r.finalScore >= 0 ? "profit-positive" : "profit-negative"}>
-                    {formatYen(r.finalScore)}
+                  <div className={entry.medianFinalScore >= 0 ? "profit-positive" : "profit-negative"}>
+                    {formatYen(entry.medianFinalScore)}
                   </div>
-                  <div className={`cash-change-sub ${changePct >= 0 ? "profit-positive" : "profit-negative"}`}>
-                    {formatSignedPct(changePct)}
+                  <div className={`cash-change-sub ${entry.positiveRunRate >= 0.5 ? "profit-positive" : "profit-negative"}`}>
+                    {entry.positiveRunCount}/{entry.runCount} {text.positiveRuns}
                   </div>
                 </td>
-                <td className="text-center">{formatPct(dm.grossMargin)}</td>
-                <td className="text-center">{formatPct(dm.errorRate)}</td>
-                <td className="sparkline-cell">
-                  <SparklineCell
-                    data={profitCurve}
-                    color={r.finalScore >= 0 ? "#10b981" : "#ef4444"}
-                    showZero
-                    animationDelay={sparklineDelay}
-                  />
+                <td className="text-center">
+                  <span className={`stability-pill stability-pill-${entry.stabilityBand}`}>
+                    {getStabilityLabel(entry.stabilityBand, text)}
+                  </span>
+                  <div className="cash-change-sub">{formatYen(entry.finalScoreIqr)}</div>
                 </td>
+                <td className="text-center">{formatPct(entry.medianGrossMargin)}</td>
+                <td className="text-center">{formatPct(entry.medianErrorRate)}</td>
                 <td className="leaderboard-actions text-center">
                   <details className="action-menu">
                     <summary className="action-menu-trigger">
@@ -481,8 +510,9 @@ export function Leaderboard({ results, derivedMetrics, locale = "en" }: Leaderbo
                       <span className="action-menu-caret" aria-hidden>▾</span>
                     </summary>
                     <div className="action-menu-list">
-                      <a href={`${routePrefix}/report/${r.id}`} className="action-menu-item">{text.report}</a>
-                      <a href={`${routePrefix}/replay/${r.id}`} className="action-menu-item">{text.replay}</a>
+                      {actionLinks.map(link => (
+                        <a key={link.href} href={link.href} className="action-menu-item">{link.label}</a>
+                      ))}
                     </div>
                   </details>
                 </td>

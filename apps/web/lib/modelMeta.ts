@@ -22,6 +22,8 @@ const MODEL_ID_META: Record<string, ModelMeta> = {
   "healer-alpha-thinking": { provider: "openrouter", region: "stealth", openness: "stealth" },
   "pony-alpha-2": { provider: "bigmodel", region: "cn", openness: "open" },
   "pony-alpha-2-thinking": { provider: "bigmodel", region: "cn", openness: "open" },
+  "xiaomi/mimo-v2-pro": { provider: "xiaomi", region: "cn", openness: "open" },
+  "mimo-v2-pro": { provider: "xiaomi", region: "cn", openness: "open" },
 };
 
 const PROVIDER_META: Record<string, Omit<ModelMeta, "provider">> = {

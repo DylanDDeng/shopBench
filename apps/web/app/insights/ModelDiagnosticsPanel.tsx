@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { formatPct, formatYen } from "@/lib/types";
 import type { Locale } from "@/lib/i18n";
 
@@ -25,8 +25,15 @@ interface ModelDiagnostic {
   criticalDays: DiagnosticDay[];
 }
 
+interface ModelDiagnosticOption {
+  model: string;
+  displayName: string;
+  rank: number;
+}
+
 interface ModelDiagnosticsPanelProps {
-  diagnostics: ModelDiagnostic[];
+  diagnostic: ModelDiagnostic | null;
+  diagnosticOptions: ModelDiagnosticOption[];
   locale?: Locale;
 }
 
@@ -47,19 +54,22 @@ function getRiskTone(score: number): "high" | "medium" | "low" {
   return "low";
 }
 
-export function ModelDiagnosticsPanel({ diagnostics, locale = "en" }: ModelDiagnosticsPanelProps) {
+export function ModelDiagnosticsPanel({ diagnostic, diagnosticOptions, locale = "en" }: ModelDiagnosticsPanelProps) {
   const isZh = locale === "zh";
-  const [selectedModel, setSelectedModel] = useState(diagnostics[0]?.model ?? "");
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const selected = useMemo(
-    () => diagnostics.find(d => d.model === selectedModel) ?? diagnostics[0],
-    [diagnostics, selectedModel],
-  );
+  if (!diagnostic) return null;
 
-  if (!selected) return null;
-
+  const selected = diagnostic;
   const riskScore = getRiskScore(selected);
   const riskTone = getRiskTone(riskScore);
+
+  const updateSelectedModel = (model: string) => {
+    const nextParams = new URLSearchParams(window.location.search);
+    nextParams.set("model", model);
+    router.replace(pathname + "?" + nextParams.toString(), { scroll: false });
+  };
 
   const text = isZh
     ? {
@@ -102,15 +112,15 @@ export function ModelDiagnosticsPanel({ diagnostics, locale = "en" }: ModelDiagn
 
       <div className="diagnostic-shell card-flat">
         <div className="diagnostic-model-tabs">
-          {diagnostics.map(diag => (
+          {diagnosticOptions.map((option) => (
             <button
-              key={diag.model}
+              key={option.model}
               type="button"
-              className={`diagnostic-tab ${diag.model === selected.model ? "active" : ""}`}
-              onClick={() => setSelectedModel(diag.model)}
+              className={`diagnostic-tab ${option.model === selected.model ? "active" : ""}`}
+              onClick={() => updateSelectedModel(option.model)}
             >
-              <span>{diag.displayName}</span>
-              <small>{text.rankPrefix} #{diag.rank}</small>
+              <span>{option.displayName}</span>
+              <small>{text.rankPrefix} #{option.rank}</small>
             </button>
           ))}
         </div>
