@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { isLocale } from "@/lib/i18n";
-import InsightsPage from "@/app/insights/page";
+import InsightsPageContent from "@/app/insights/InsightsPageContent";
 
 export default async function LocalizedInsightsPage({
   params,
@@ -15,5 +15,5 @@ export default async function LocalizedInsightsPage({
     notFound();
   }
 
-  return <InsightsPage locale={locale} searchParams={searchParams} />;
+  return <InsightsPageContent locale={locale} searchParams={searchParams} />;
 }
