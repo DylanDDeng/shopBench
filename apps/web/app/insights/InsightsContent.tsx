@@ -1,3 +1,5 @@
+"use client";
+
 import { StrategyGroup } from "@/components/StrategyGroup";
 import { PriceVsProfitScatter } from "@/components/ScatterChart";
 import { HorizontalBarChart } from "@/components/HorizontalBarChart";
