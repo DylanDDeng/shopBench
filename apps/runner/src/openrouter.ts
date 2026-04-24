@@ -3,13 +3,16 @@ import { TOOL_DEFINITIONS } from "@shopbench/tools";
 export interface OpenRouterConfig {
   apiKey: string;
   model: string;
-  provider?: "openrouter" | "ark";
+  provider?: Provider;
   baseUrl?: string;
   reasoningEnabled?: boolean;
-  reasoningEffort?: "low" | "medium" | "high" | "xhigh";
+  reasoningEffort?: ReasoningEffort;
   strictTools?: boolean;
   parallelToolCalls?: boolean;
 }
+
+export type Provider = "openrouter" | "ark" | "deepseek";
+export type ReasoningEffort = "low" | "medium" | "high" | "xhigh" | "max";
 
 interface Message {
   role: "system" | "user" | "assistant" | "tool";
@@ -24,6 +27,9 @@ interface Message {
   // Reasoning details returned by OpenAI reasoning models — must be
   // preserved and passed back unmodified for multi-turn conversations.
   reasoning_details?: unknown;
+  // DeepSeek thinking mode returns CoT in this field. If an assistant turn
+  // includes tool calls, DeepSeek requires it to be passed back unchanged.
+  reasoning_content?: string;
 }
 
 interface ChatResponse {
@@ -38,6 +44,8 @@ interface ChatResponse {
       }[];
       // Returned by OpenAI reasoning models
       reasoning_details?: unknown;
+      // Returned by DeepSeek thinking mode
+      reasoning_content?: string;
     };
     finish_reason: string;
   }[];
@@ -72,8 +80,36 @@ const REASONING_MODELS = [
 
 function needsReasoning(model: string): boolean {
   const normalized = model.toLowerCase();
+  if (normalized === "deepseek-v4-pro" || normalized.startsWith("deepseek-v4-pro-")) return true;
   if (normalized.startsWith("doubao-seed")) return true;
   return REASONING_MODELS.some(m => normalized === m || normalized.startsWith(m + "-"));
+}
+
+function inferProvider(baseUrl?: string): Provider {
+  const normalized = (baseUrl ?? "").toLowerCase();
+  if (normalized.includes("volces.com")) return "ark";
+  if (normalized.includes("deepseek.com")) return "deepseek";
+  return "openrouter";
+}
+
+function defaultBaseUrl(provider: Provider): string {
+  switch (provider) {
+    case "ark":
+      return "https://ark.cn-beijing.volces.com/api/v3";
+    case "deepseek":
+      return "https://api.deepseek.com";
+    case "openrouter":
+      return "https://openrouter.ai/api/v1";
+  }
+}
+
+function mapOpenRouterReasoningEffort(effort: ReasoningEffort): Exclude<ReasoningEffort, "max"> {
+  return effort === "max" ? "xhigh" : effort;
+}
+
+function mapDeepSeekReasoningEffort(effort?: ReasoningEffort): "high" | "max" {
+  if (effort === "max" || effort === "xhigh") return "max";
+  return "high";
 }
 
 function buildStrictToolDefinitions(definitions: readonly unknown[]): unknown[] {
@@ -123,16 +159,16 @@ function buildStrictToolDefinitions(definitions: readonly unknown[]): unknown[] 
 export class OpenRouterClient {
   private config: OpenRouterConfig;
   private totalTokens = 0;
-  private provider: "openrouter" | "ark";
+  private provider: Provider;
   private reasoning: boolean;
-  private reasoningEffort?: "low" | "medium" | "high" | "xhigh";
+  private reasoningEffort?: ReasoningEffort;
   private strictTools: boolean;
   private parallelToolCalls?: boolean;
   private tools: unknown[];
 
   constructor(config: OpenRouterConfig) {
     this.config = config;
-    this.provider = config.provider ?? ((config.baseUrl ?? "").includes("volces.com") ? "ark" : "openrouter");
+    this.provider = config.provider ?? inferProvider(config.baseUrl);
     this.reasoningEffort = config.reasoningEffort;
     const inferredReasoning = needsReasoning(config.model) || Boolean(config.reasoningEffort);
     this.reasoning = config.reasoningEnabled ?? inferredReasoning;
@@ -142,8 +178,7 @@ export class OpenRouterClient {
   }
 
   async chat(messages: Message[], maxRetries = 3): Promise<ChatResponse> {
-    const defaultBaseUrl = this.provider === "ark" ? "https://ark.cn-beijing.volces.com/api/v3" : "https://openrouter.ai/api/v1";
-    const url = `${this.config.baseUrl ?? defaultBaseUrl}/chat/completions`;
+    const url = `${this.config.baseUrl ?? defaultBaseUrl(this.provider)}/chat/completions`;
 
     const body: Record<string, unknown> = {
       model: this.config.model,
@@ -160,10 +195,13 @@ export class OpenRouterClient {
     if (this.reasoning) {
       if (this.provider === "ark") {
         body.thinking = { type: "enabled" };
+      } else if (this.provider === "deepseek") {
+        body.thinking = { type: "enabled" };
+        body.reasoning_effort = mapDeepSeekReasoningEffort(this.reasoningEffort);
       } else {
         const reasoningBody: { enabled: true; effort?: "low" | "medium" | "high" | "xhigh" } = { enabled: true };
         if (this.reasoningEffort) {
-          reasoningBody.effort = this.reasoningEffort;
+          reasoningBody.effort = mapOpenRouterReasoningEffort(this.reasoningEffort);
         }
         body.reasoning = reasoningBody;
       }

@@ -331,6 +331,7 @@ const MODEL_DISPLAY_NAMES: Record<string, string> = {
   "openai/gpt-4o": "GPT-4o",
   "openai/o3-mini": "o3-mini",
   "meta-llama/llama-4-maverick": "Llama 4 Maverick",
+  "deepseek-v4-pro": "DeepSeek V4 Pro",
 };
 
 export function getModelDisplayName(model: string): string {

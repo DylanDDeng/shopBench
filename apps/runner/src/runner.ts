@@ -3,7 +3,7 @@ import type { ScenarioConfig, SimulationResult, DayRecord, ToolCallRecord } from
 import { executeToolCall } from "@shopbench/tools";
 import { calculateMetrics, calculateScore } from "@shopbench/scoring";
 import { OpenRouterClient } from "./openrouter.js";
-import type { Message } from "./openrouter.js";
+import type { Message, Provider, ReasoningEffort } from "./openrouter.js";
 import { randomUUID } from "node:crypto";
 
 export interface RunConfig {
@@ -13,11 +13,11 @@ export interface RunConfig {
   // Actual provider model ID used for API calls; defaults to `model`
   providerModel?: string;
   // Model provider endpoint flavor
-  provider?: "openrouter" | "ark";
+  provider?: Provider;
   // Optional explicit override for reasoning.enabled in request body
   reasoningEnabled?: boolean;
   // Optional reasoning effort override for reasoning-enabled models
-  reasoningEffort?: "low" | "medium" | "high" | "xhigh";
+  reasoningEffort?: ReasoningEffort;
   // Optional strict mode for function tools (schema constrained)
   strictTools?: boolean;
   // Optional explicit control for provider-level parallel tool calls
@@ -135,6 +135,7 @@ export async function runSimulation(config: RunConfig): Promise<SimulationResult
           role: "assistant",
           content: choice.message.content ?? "",
           reasoning_details: choice.message.reasoning_details,
+          reasoning_content: choice.message.reasoning_content,
         });
         break;
       }
@@ -145,6 +146,7 @@ export async function runSimulation(config: RunConfig): Promise<SimulationResult
         content: choice.message.content ?? undefined,
         tool_calls: choice.message.tool_calls,
         reasoning_details: choice.message.reasoning_details,
+        reasoning_content: choice.message.reasoning_content,
       });
 
       for (const tc of choice.message.tool_calls) {

@@ -4,16 +4,16 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runSimulation } from "./runner.js";
+import type { Provider, ReasoningEffort } from "./openrouter.js";
 import { generateReport } from "@shopbench/scoring";
 import type { ScenarioConfig } from "@shopbench/engine";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "../../..");
-type ReasoningEffort = "low" | "medium" | "high" | "xhigh";
-type Provider = "openrouter" | "ark";
 
 interface ModelPreset {
   providerModel: string;
+  provider?: Provider;
   reasoningEffort?: ReasoningEffort;
   reasoningEnabled?: boolean;
 }
@@ -31,6 +31,9 @@ const MODEL_PRESETS: Record<string, ModelPreset> = {
   // - force reasoning.enabled=true
   "deepseek-v3.2-thinking": { providerModel: "deepseek/deepseek-v3.2", reasoningEnabled: true },
   "deepseek/deepseek-v3.2-thinking": { providerModel: "deepseek/deepseek-v3.2", reasoningEnabled: true },
+  // Official DeepSeek API. The CLI defaults this alias to the DeepSeek provider
+  // so it does not accidentally run through OpenRouter.
+  "deepseek-v4-pro": { providerModel: "deepseek-v4-pro", provider: "deepseek", reasoningEnabled: true, reasoningEffort: "max" },
 };
 
 function isClaudeModelId(modelId: string): boolean {
@@ -50,18 +53,18 @@ Usage:
 
 Options:
   --model, -m     Model ID (e.g. "openai/gpt-4o", "anthropic/claude-3.5-sonnet")
-  --provider      Provider: openrouter | ark (default: openrouter)
+  --provider      Provider: openrouter | ark | deepseek (default: openrouter, or deepseek for deepseek-v4-pro)
   --provider-model  Actual provider model ID to call (defaults to --model)
   --openrouter-model Legacy alias of --provider-model
   --thinking       Enable model thinking/reasoning mode
   --no-thinking    Disable model thinking/reasoning mode
-  --reasoning-effort  Reasoning effort: low | medium | high | xhigh
+  --reasoning-effort  Reasoning effort: low | medium | high | xhigh | max
   --tool-schema-strict     Enable strict tool schema
   --no-tool-schema-strict  Disable strict tool schema
   --parallel-tool-calls    Enable parallel tool calls
   --no-parallel-tool-calls Disable parallel tool calls
   --scenario, -s  Scenario file path (default: scenarios/base.json)
-  --api-key, -k   API key (OPENROUTER_API_KEY or ARK_API_KEY)
+  --api-key, -k   API key (OPENROUTER_API_KEY, ARK_API_KEY, or DEEPSEEK_API_KEY)
   --base-url      API base URL (defaults by provider)
   --output, -o    Output directory (default: data/)
   --verbose, -v   Verbose output
@@ -95,21 +98,24 @@ async function main() {
   const model = modelArg;
   const baseUrl = getArg(["--base-url"]);
 
+  const preset = MODEL_PRESETS[baseModelArg.toLowerCase()] ?? MODEL_PRESETS[modelArg.toLowerCase()];
   const providerArg = getArg(["--provider"]);
   let provider: Provider =
-    (baseUrl ?? "").toLowerCase().includes("volces.com")
+    preset?.provider ??
+    ((baseUrl ?? "").toLowerCase().includes("volces.com")
       ? "ark"
-      : "openrouter";
+      : (baseUrl ?? "").toLowerCase().includes("deepseek.com")
+        ? "deepseek"
+        : "openrouter");
   if (providerArg) {
     const normalized = providerArg.toLowerCase();
-    if (normalized !== "openrouter" && normalized !== "ark") {
-      console.error(`Error: invalid --provider "${providerArg}". Use openrouter|ark.`);
+    if (normalized !== "openrouter" && normalized !== "ark" && normalized !== "deepseek") {
+      console.error(`Error: invalid --provider "${providerArg}". Use openrouter|ark|deepseek.`);
       process.exit(1);
     }
     provider = normalized as Provider;
   }
 
-  const preset = MODEL_PRESETS[baseModelArg.toLowerCase()] ?? MODEL_PRESETS[modelArg.toLowerCase()];
   const providerModel = getArg(["--provider-model", "--openrouter-model"]) ?? preset?.providerModel ?? baseModelArg;
 
   // Claude dual mode:
@@ -132,8 +138,8 @@ async function main() {
   let reasoningEffort: ReasoningEffort | undefined = preset?.reasoningEffort;
   if (effortArg) {
     const normalized = effortArg.toLowerCase();
-    if (normalized !== "low" && normalized !== "medium" && normalized !== "high" && normalized !== "xhigh") {
-      console.error(`Error: invalid --reasoning-effort "${effortArg}". Use low|medium|high|xhigh.`);
+    if (normalized !== "low" && normalized !== "medium" && normalized !== "high" && normalized !== "xhigh" && normalized !== "max") {
+      console.error(`Error: invalid --reasoning-effort "${effortArg}". Use low|medium|high|xhigh|max.`);
       process.exit(1);
     }
     reasoningEffort = normalized as ReasoningEffort;
@@ -165,11 +171,17 @@ async function main() {
 
   const apiKey =
     getArg(["--api-key", "-k"]) ??
-    (provider === "ark" ? process.env.ARK_API_KEY : process.env.OPENROUTER_API_KEY);
+    (provider === "ark"
+      ? process.env.ARK_API_KEY
+      : provider === "deepseek"
+        ? process.env.DEEPSEEK_API_KEY
+        : process.env.OPENROUTER_API_KEY);
   if (!apiKey) {
     console.error(
       provider === "ark"
         ? "Error: API key required. Use --api-key or set ARK_API_KEY"
+        : provider === "deepseek"
+          ? "Error: API key required. Use --api-key or set DEEPSEEK_API_KEY"
         : "Error: API key required. Use --api-key or set OPENROUTER_API_KEY",
     );
     process.exit(1);
